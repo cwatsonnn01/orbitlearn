@@ -1,0 +1,12 @@
+# Render Blueprint: OrbitLearn demo as a free web service. No database or paid plan needed.
+services:
+  - type: web
+    name: orbitlearn
+    runtime: node
+    plan: free
+    buildCommand: echo "No dependencies to install"
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

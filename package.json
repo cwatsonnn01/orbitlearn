@@ -1,0 +1,9 @@
+{
+  "name": "orbitlearn",
+  "version": "1.0.0",
+  "description": "OrbitLearn: proactive classroom platform demo (alerts, AI recaps, study vault).",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": { "start": "node src/server.js", "test": "node test/api.js" },
+  "engines": { "node": ">=18" }
+}
