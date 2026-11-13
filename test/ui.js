@@ -68,6 +68,9 @@ server.listen(0, async () => {
     await as('board', async (p) => { await shot(p, 'mobile-board'); }, true);
     await as('parent', async (p) => { await shot(p, 'mobile-parent'); }, true);
     await as('kinder', async (p) => { await shot(p, 'mobile-kinder'); }, true);
+    await as('teacher', async (p) => { await p.goto(base + '/#/class/bio?tab=map'); await p.waitForTimeout(1200); await shot(p, 'teacher-class-fall'); await p.waitForTimeout(9500); await p.click('button[data-act=look]'); await p.waitForSelector('.modal'); await shot(p, 'teacher-look-modal'); await p.click('.sw input[value=sunset]', { force: true }); await p.click('form[data-form=look] button:not([type=button])'); await p.waitForTimeout(400); await p.goto(base + '/#/messages'); await p.waitForTimeout(300); await shot(p, 'teacher-messages'); });
+    await as('admin', async (p) => { await p.goto(base + '/#/settings'); await p.click('.mc input[value=bear]', { force: true }); await p.check('input[name=useColors]'); await p.click('form[data-form=brand] button:not([type=button])'); await p.waitForTimeout(400); await p.click('button[data-k=halloween]'); await p.waitForTimeout(1800); await shot(p, 'admin-halloween'); });
+    await as('kinder', async (p) => { await p.waitForTimeout(1500); await shot(p, 'kinder-season'); });
     console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'UI OK, no errors');
   } catch (e) { console.error('UI FAIL', e); console.log(errors.join('\n')); process.exitCode = 1; }
   await browser.close(); server.close(); process.exit();

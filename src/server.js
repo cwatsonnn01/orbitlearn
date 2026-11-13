@@ -9,6 +9,7 @@ const risk = require('./risk');
 const ai = require('./ai');
 const levels = require('./levels');
 const insights = require('./insights');
+const social = require('./social');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -21,7 +22,7 @@ function load() {
   try {
     db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     // Re-seed demos older than 3 days so dates stay fresh.
-    if (!db.seededAt || Date.now() - db.seededAt > 3 * 86400000 || !db.mastery || !db.board) throw new Error('stale');
+    if (!db.seededAt || Date.now() - db.seededAt > 3 * 86400000 || !db.mastery || !db.board || !db.messages) throw new Error('stale');
   } catch {
     db = seed();
     save();
@@ -191,6 +192,8 @@ function bootstrap(u) {
     base.gaps = insights.schoolGaps(db);
   }
   if (u.role === 'board') { base.board = insights.boardView(db); base.me.title = u.title; }
+  base.mascots = social.MASCOTS;
+  if (u.role !== 'student') Object.assign(base, social.inbox(db, u));
   base.announcements = db.announcements.filter((a) => a.scope === 'school' || classIds.includes(a.scope)).map((a) => ({ ...a, author: (user(a.authorId) || {}).name })).sort((a, b) => (b.urgent - a.urgent) || b.createdAt - a.createdAt);
   base.meetings = db.meetings.filter((m) => m.requesterId === u.id || m.teacherId === u.id || (u.role === 'parent' && m.studentId === u.childId) || u.role === 'admin')
     .map((m) => ({ ...m, requester: user(m.requesterId).name, teacher: user(m.teacherId).name, student: user(m.studentId).name })).sort((a, b) => b.createdAt - a.createdAt);
@@ -410,6 +413,28 @@ const routes = {
   'POST /api/settings': (b, u) => {
     if (u.role !== 'admin') throw httpErr(403, 'Admins only');
     if (['kinder', 'elementary', 'middle', 'high', 'university'].includes(b.level)) db.school.level = b.level;
+    if (b.brand) social.setBrand(db.school, b.brand);
+    return { ok: true };
+  },
+  'POST /api/class/look': (b, u) => {
+    const c = cls(b.classId);
+    if (!c || u.role !== 'teacher' || !teaches(u, c)) throw httpErr(403, 'Not your class');
+    social.setLook(c, b);
+    return { ok: true, look: c.look };
+  },
+  'POST /api/messages': (b, u) => {
+    const to = user(b.to);
+    if (!to || !social.contacts(db, u).some((x) => x.id === to.id)) throw httpErr(403, 'You can’t message this person.');
+    const body = social.clip(b.body, 2000);
+    if (!body) throw httpErr(400, 'Write a message first.');
+    const m = { id: id(), from: u.id, to: to.id, body, at: Date.now(), read: false };
+    db.messages.push(m);
+    db.messages = db.messages.slice(-3000);
+    notify(to.id, 'message', `New message from ${u.name}`, body.slice(0, 120), `#/messages?with=${u.id}`);
+    return { ok: true, message: m };
+  },
+  'POST /api/messages/read': (b, u) => {
+    db.messages.forEach((m) => { if (m.to === u.id && m.from === b.with) m.read = true; });
     return { ok: true };
   },
   'POST /api/reset': (b, u) => {

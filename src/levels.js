@@ -118,7 +118,7 @@ function addLevels(db) {
     return { id: 'lib' + i, ...l, gradeLabel: gradeLabel(l.grade), summary: ai.summarize(l.notes, 4), keyTerms: gen.keyTerms, flashcards: gen.flashcards, quiz: gen.quiz };
   });
   add({ role: 'board', name: 'Dr. Amara Okoye', title: 'Superintendent of Education', email: 'board@orbitlearn.demo' });
-  return require('./insights').seed(db);
+  return require('./social').seed(require('./insights').seed(db));
 }
 
 // Earlier-grade lessons that share concepts with a recap, newest grade first.

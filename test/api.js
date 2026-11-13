@@ -97,6 +97,21 @@ server.listen(0, async () => {
     ok((await call('admin', 'GET', '/api/bootstrap')).body.notifications.some((n) => n.type === 'board'), 'principal notified of pack');
     ok((await call('admin', 'POST', '/api/board/pack', { schoolId: 'all', exam: 'g9' })).status === 403, 'admin cant send board packs');
     ok((await call('admin', 'GET', '/api/bootstrap')).body.gaps.roots.length >= 1, 'school root causes');
+    // messaging, branding, class looks
+    const pb = (await call('parent', 'GET', '/api/bootstrap')).body;
+    ok(pb.contacts.some((c) => c.role === 'teacher') && pb.messages.length >= 3, 'parent inbox');
+    const tch = pb.contacts.find((c) => c.name === 'Ms. Rivera');
+    ok((await call('parent', 'POST', '/api/messages', { to: tch.id, body: 'Thanks again!' })).status === 200, 'parent sends message');
+    const tb = (await call('teacher', 'GET', '/api/bootstrap')).body;
+    ok(tb.notifications.some((n) => n.type === 'message'), 'teacher notified of message');
+    const anyStudent = Object.keys(tb.students)[0];
+    ok((await call('parent', 'POST', '/api/messages', { to: anyStudent, body: 'hi' })).status === 403, 'cannot message a student');
+    ok(!(await call('student', 'GET', '/api/bootstrap')).body.contacts, 'students have no inbox');
+    ok((await call('teacher', 'POST', '/api/class/look', { classId: 'bio', theme: 'ocean', emoji: '🐳', banner: 'Hi class', seasonal: false })).body.look.theme === 'ocean', 'teacher sets look');
+    ok((await call('teacher', 'POST', '/api/class/look', { classId: 'math', theme: 'ocean' })).status === 403, 'not your class look');
+    ok((await call('admin', 'POST', '/api/settings', { brand: { mascot: 'bear', mascotName: 'Northview Bears', primary: '#AA0000', secondary: 'nope', useColors: true, seasonal: true } })).status === 200, 'brand saved');
+    const br = (await call('student', 'GET', '/api/bootstrap')).body.school.brand;
+    ok(br.mascot === 'bear' && br.primary === '#AA0000' && br.secondary === '#F5B700', 'brand validated ' + JSON.stringify(br));
     console.log('PASS', pass);
   } catch (e) { console.error('FAIL after', pass, e.message); process.exitCode = 1; }
   server.close(); process.exit();

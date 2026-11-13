@@ -54,6 +54,7 @@
   function setTheme() {
     const t = 't-' + theme();
     if (!document.body.classList.contains(t)) { document.body.classList.remove('t-orbit', 't-kinder', 't-pro'); document.body.classList.add(t); }
+    applyBrand();
     const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t === 't-kinder' ? '#FFF7EC' : t === 't-pro' ? '#0A0B10' : '#06071A';
   }
   function speak(text) {
@@ -96,11 +97,11 @@
   function navFor(role) {
     const L = S.labels;
     if (role === 'student' && L.level === 'kinder') return [['home', 'My day', 'home'], ['vault', 'My lessons', 'book'], ['assistant', 'Ask Orbit', 'spark'], ['assignments', 'My jobs', 'star']];
-    if (role === 'board') return [['home', 'Board overview', 'home'], ['review', 'Review planner', 'book'], ['announcements', 'Announcements', 'mega']];
+    if (role === 'board') return [['home', 'Board overview', 'home'], ['review', 'Review planner', 'book'], ['messages', 'Messages', 'mail'], ['announcements', 'Announcements', 'mega']];
     if (role === 'student') return [['home', 'Home', 'home'], ['map', 'My map', 'orbit'], ['assignments', 'Assignments', 'clip'], ['vault', 'Study Vault', 'book'], ['assistant', 'Orbit AI', 'spark'], ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
-    if (role === 'parent') return [['home', 'Home', 'home'], ['map', 'Learning map', 'orbit'], ['assignments', 'Homework', 'clip'], ['vault', 'Class recaps', 'book'], ['meetings', 'Meetings', 'cal'], ['community', L.community, 'users'], ['announcements', 'Announcements', 'mega']];
-    if (role === 'teacher') return [['home', 'Home', 'home'], ...S.classes.map((c) => [`class/${c.id}`, c.name, 'class']), ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
-    return [['home', 'School overview', 'home'], ['gaps', 'Learning gaps', 'ladder'], ['announcements', 'Announcements', 'mega'], ['email', 'Email log', 'mail'], ['meetings', 'Meetings', 'cal'], ['settings', 'Settings', 'gear']];
+    if (role === 'parent') return [['home', 'Home', 'home'], ['map', 'Learning map', 'orbit'], ['assignments', 'Homework', 'clip'], ['vault', 'Class recaps', 'book'], ['messages', 'Messages', 'mail'], ['meetings', 'Meetings', 'cal'], ['community', L.community, 'users'], ['announcements', 'Announcements', 'mega']];
+    if (role === 'teacher') return [['home', 'Home', 'home'], ...S.classes.map((c) => [`class/${c.id}`, c.name, 'class']), ['messages', 'Messages', 'mail'], ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
+    return [['home', 'School overview', 'home'], ['gaps', 'Learning gaps', 'ladder'], ['messages', 'Messages', 'mail'], ['announcements', 'Announcements', 'mega'], ['email', 'Email log', 'mail'], ['meetings', 'Meetings', 'cal'], ['settings', 'Settings', 'gear']];
   }
 
   // ---------- render ----------
@@ -121,13 +122,15 @@
       <div class="shell">
         <aside class="side ${navOpen ? 'open' : ''}" aria-label="Main">
           ${brand()}
-          <nav>${nav.map(([h, l, i]) => `<a href="#/${h}" class="${cur === h || (h !== 'home' && cur.startsWith(h + '/')) || (h === 'home' && key === 'home') ? 'on' : ''}">${icon(i)}${esc(l)}</a>`).join('')}</nav>
+          <nav>${nav.map(([h, l, i]) => `<a href="#/${h}" class="${cur === h || (h !== 'home' && cur.startsWith(h + '/')) || (h === 'home' && key === 'home') ? 'on' : ''}">${icon(i)}${esc(l)}${h === 'messages' && unreadMsgs() ? `<span class="navcount">${unreadMsgs()}</span>` : ''}</a>`).join('')}</nav>
+          ${crest()}
           <div class="who"><span class="avatar">${esc(initials(S.me.name))}</span><div><b>${esc(S.me.name)}</b>${esc(roleName)} · ${esc(S.me.role === 'board' ? S.board.name : S.school.name)}</div></div>
         </aside>
         <main id="main">
           <div class="top">
             <span class="levelchip"><span class="pulse"></span>${esc(levelName)} · live demo</span>
             <div class="actions">
+              ${brandOf().seasonal ? `<button class="btn ghost sm seasonchip" data-act="season" title="Play this season’s surprise">${SEASONS[seasonKey()].icon || '🕊️'} <span>${esc(SEASONS[seasonKey()].label)}</span></button>` : ''}
               <div class="bell"><button class="btn ghost sm" data-act="bell" aria-label="Notifications, ${unread} unread" aria-expanded="${panelOpen}">${icon('bell')}</button>${unread ? `<span class="count">${unread}</span>` : ''}
                 ${panelOpen ? `<div class="panel" role="dialog" aria-label="Notifications">${S.notifications.length ? S.notifications.map((n) => `<a class="n ${n.read ? '' : 'unread'}" href="${esc(n.link || '#/home')}"><b>${esc(n.title)}</b><div class="small muted">${esc(n.body)}</div><div class="tiny muted">${ago(n.createdAt)}</div></a>`).join('') : '<div class="empty" style="padding:12px">No notifications yet.</div>'}</div>` : ''}
               </div>
@@ -138,6 +141,8 @@
         </main>
       </div>`;
     typewriter();
+    markThreadRead();
+    seasonAuto(r);
   }
 
   function page(key, r) {
@@ -147,6 +152,7 @@
       assignments: () => assignmentsPage(),
       foundation: () => foundationPage(r.parts[1], r.q.from),
       map: () => mapPage(),
+      messages: () => messagesPage(r.q),
       check: () => checkPage(r.parts[1]),
       gaps: () => gapsPage(),
       review: () => reviewPage(r.q),
@@ -297,7 +303,7 @@
       '<g fill="#fff" font-family="Baloo 2,sans-serif" font-weight="800" font-size="22"><text x="4" y="28">1</text><text x="24" y="44">2</text><text x="42" y="28">3</text></g><circle cx="52" cy="52" r="7" fill="#FFE27A"/>'];
     const jobs = S.assignments.filter((a) => a.state === 'todo' || a.state === 'missing');
     const stars = S.assignments.filter((a) => a.state === 'submitted' || a.state === 'graded').length + (S.badges || []).length;
-    return `<div class="k-hello"><svg class="k-sun" viewBox="0 0 84 84" aria-hidden="true"><g stroke="#FFB020" stroke-width="5" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map((d) => `<line x1="42" y1="6" x2="42" y2="14" transform="rotate(${d} 42 42)"/>`).join('')}</g><circle cx="42" cy="42" r="22" fill="#FFC93C"/><circle cx="35" cy="39" r="2.6" fill="#2A2350"/><circle cx="49" cy="39" r="2.6" fill="#2A2350"/><path d="M34 48c4 5 12 5 16 0" stroke="#2A2350" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+    return `${S.classes[0] ? `<div style="margin-bottom:18px">${classBanner(S.classes[0], true)}</div>` : ''}<div class="k-hello"><svg class="k-sun" viewBox="0 0 84 84" aria-hidden="true"><g stroke="#FFB020" stroke-width="5" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map((d) => `<line x1="42" y1="6" x2="42" y2="14" transform="rotate(${d} 42 42)"/>`).join('')}</g><circle cx="42" cy="42" r="22" fill="#FFC93C"/><circle cx="35" cy="39" r="2.6" fill="#2A2350"/><circle cx="49" cy="39" r="2.6" fill="#2A2350"/><path d="M34 48c4 5 12 5 16 0" stroke="#2A2350" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
         <div><h1>Hi ${esc(first(S.me.name))}!</h1><p class="muted" style="font-size:19px;margin:0">You have <b>${stars} stars</b> this week. Let’s learn something new!</p></div></div>
       ${brief(`Today we learned about <b>${esc((S.recaps[0] || {}).title || 'something fun')}</b>! Tap Listen and I’ll tell you all about it.`)}
       <h2 style="font-size:26px;margin:22px 0 12px">My lessons</h2>
@@ -317,6 +323,7 @@
       ${checkBanner()}
       ${studentBrief()}
       ${riskBanner('student')}
+      ${myClasses()}
       <div class="grid g2 section">
         <div class="card"><h2>Coming up <a class="small" href="#/assignments">All</a></h2>${assignmentRows(upcoming, true)}</div>
         <div class="card"><h2>My progress</h2>${classProgress()}</div>
@@ -371,7 +378,7 @@
     if (!r) return `<div class="card">That recap isn't available. <a href="#/vault">Back to the vault</a></div>`;
     const c = cls(r.classId);
     const hw = (r.homework || []).map((h) => S.assignments.find((a) => a.id === h)).filter(Boolean);
-    return `<a href="#/vault" class="small">← ${S.me.role === 'parent' ? 'Class recaps' : 'Study Vault'}</a>
+    return `<a href="#/vault" class="small">← ${S.me.role === 'parent' ? 'Class recaps' : 'Study Vault'}</a><div style="margin-top:10px">${classBanner(c, true)}</div>
       <div class="hero-greet" style="margin-top:8px"><div>${subj(c)}<h1 style="margin-top:6px">${esc(r.title)}</h1><p class="muted">${fmtDate(r.date)} · approved by your ${esc(S.labels.teacher.toLowerCase())}</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-act="listen" data-text="${esc(r.title + '. ' + r.summary.join(' '))}">${icon('ear')} Listen</button>${S.me.role === 'student' && !isKid() ? `<a class="btn ghost" href="#/exam/${esc(c.id)}">${icon('book')} ${esc(c.subject)} exam prep</a>` : ''}</div></div>
       <div class="grid g2">
@@ -554,7 +561,7 @@
     if (!c) return '<div class="card">Class not found.</div>';
     const tabs = [['map', 'Knowledge map'], ['roster', 'Roster'], ['attendance', 'Attendance'], ['assignments', 'Assignments'], ['recaps', 'AI recaps'], ['shout', 'Shoutouts & posts']];
     const content = { map: classMapTab, roster: rosterTab, attendance: attendanceTab, assignments: assignTab, recaps: recapsTab, shout: shoutTab }[tab] || rosterTab;
-    return `${subj(c)}<h1 style="margin-top:6px">${esc(c.name)}</h1><p class="muted">${esc(c.room)} · ${c.roster.length} students</p>
+    return `${classBanner(c)}<p class="muted" style="margin-top:12px">${esc(c.room)} · ${c.roster.length} students</p>
       <nav class="tabs" aria-label="Class sections">${tabs.map(([k, l]) => `<a href="#/class/${esc(c.id)}?tab=${k}" class="${tab === k ? 'on' : ''}">${l}</a>`).join('')}</nav>${content(c)}`;
   }
   function rosterTab(c) {
@@ -605,6 +612,157 @@
       <p class="section small muted">Class announcements live under <a href="#/announcements">Announcements</a>.</p>`;
   }
 
+  // ---------- school brand + classroom looks ----------
+  const THEME_GRAD = { galaxy: 'linear-gradient(120deg,#2EE6D6,#7C6CFF 55%,#FF6FB5)', ocean: 'linear-gradient(120deg,#22D3EE,#2563EB)', forest: 'linear-gradient(120deg,#4ADE80,#0F766E)', sunset: 'linear-gradient(120deg,#FDBA74,#F43F5E)', candy: 'linear-gradient(120deg,#EC4899,#8B5CF6)', minimal: 'linear-gradient(120deg,#475569,#1E293B)' };
+  const THEME_NAME = { galaxy: 'Galaxy', ocean: 'Ocean', forest: 'Forest', sunset: 'Sunset', candy: 'Candy', minimal: 'Minimal' };
+  const brandOf = () => (S && S.school && S.school.brand) || {};
+  function applyBrand() {
+    const b = brandOf(), st = document.body.style;
+    if (S && b.useColors) { st.setProperty('--grad', `linear-gradient(115deg,${b.primary},${b.secondary})`); st.setProperty('--brand', b.primary); }
+    else { st.removeProperty('--grad'); st.removeProperty('--brand'); }
+  }
+  function crest() {
+    if (!S || S.me.role === 'board') return '';
+    const b = brandOf(); const m = (S.mascots || {})[b.mascot] || '⭐';
+    return `<div class="crest" style="--c1:${esc(b.primary || '#7C6CFF')};--c2:${esc(b.secondary || '#2EE6D6')}"><span class="m">${m}</span><div><b>${esc(b.mascotName || S.school.name)}</b><span>${esc(S.school.name)}</span></div></div>`;
+  }
+  function classBanner(c, compact) {
+    const L = c.look || { theme: 'galaxy', emoji: '✨', banner: '' };
+    const edit = S.me.role === 'teacher' && (c.teacherId === S.me.id || c.coTeacherId === S.me.id);
+    return `<div class="cbanner ${compact ? 'compact' : ''}" style="background:${THEME_GRAD[L.theme] || THEME_GRAD.galaxy}"><span class="ce">${esc(L.emoji)}</span><div class="ct"><b>${esc(c.name)}</b>${L.banner ? `<span>${esc(L.banner)}</span>` : ''}</div>${edit && !compact ? `<button class="btn ghost sm" data-act="look" data-class="${esc(c.id)}">${icon('gear')} Customize</button>` : ''}</div>`;
+  }
+  function myClasses() {
+    return `<div class="section"><h2 style="margin-bottom:12px">My classes</h2><div class="grid g3">${S.classes.map((c) => `<a href="#/vault?c=${esc(c.id)}" style="text-decoration:none">${classBanner(c, true)}</a>`).join('')}</div></div>`;
+  }
+  function lookModal(c) {
+    const L = c.look;
+    const picks = ['🧬', '🔬', '📐', '📚', '🌈', '🚀', '🎨', '🌍', '🎵', '⚽', '🧠', '✨'];
+    modal(`<h2>Customize ${esc(c.name)}</h2><p class="small muted">Students and families see this look on everything from your class.</p>
+      <form data-form="look" data-class="${esc(c.id)}">
+        <label>Theme</label><div class="swatches">${Object.keys(THEME_GRAD).map((k) => `<label class="sw"><input type="radio" name="theme" value="${k}" ${L.theme === k ? 'checked' : ''}><span style="background:${THEME_GRAD[k]}"></span>${THEME_NAME[k]}</label>`).join('')}</div>
+        <label for="le">Class emoji</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="le" name="emoji" type="text" maxlength="8" value="${esc(L.emoji)}" style="width:90px;font-size:22px;text-align:center">${picks.map((p) => `<button type="button" class="chip" data-act="pickemoji" data-e="${p}">${p}</button>`).join('')}</div>
+        <label for="lb">Welcome message</label><input id="lb" name="banner" type="text" maxlength="120" value="${esc(L.banner)}" placeholder="Welcome to class!">
+        <label class="check"><input type="checkbox" name="seasonal" ${L.seasonal ? 'checked' : ''}> Seasonal surprises (snow, leaves and a holiday pun, then back to this look)</label>
+        <div style="display:flex;gap:8px;margin-top:14px"><button class="btn">Save look</button><button class="btn ghost" type="button" data-close>Cancel</button></div></form>`);
+  }
+
+  // ---------- messages ----------
+  function unreadMsgs() { return (S.messages || []).filter((m) => m.to === S.me.id && !m.read).length; }
+  function messagesPage(q) {
+    const C = S.contacts || []; const M = S.messages || [];
+    const last = (cid) => M.filter((m) => m.from === cid || m.to === cid).slice(-1)[0];
+    const threads = C.filter((c) => last(c.id)).sort((a, b) => last(b.id).at - last(a.id).at);
+    const others = C.filter((c) => !last(c.id));
+    const sel = C.find((c) => c.id === q.with) || threads[0];
+    const conv = sel ? M.filter((m) => m.from === sel.id || m.to === sel.id) : [];
+    const row = (c) => { const l = last(c.id); const un = M.filter((m) => m.from === c.id && m.to === S.me.id && !m.read).length; return `<a class="thread ${sel && sel.id === c.id ? 'on' : ''}" href="#/messages?with=${esc(c.id)}"><span class="avatar">${esc(initials(c.name))}</span><span class="tm"><b>${esc(c.name)}</b><span class="tiny muted">${esc(c.label)}</span>${l ? `<span class="small muted snip">${l.from === S.me.id ? 'You: ' : ''}${esc(l.body)}</span>` : ''}</span>${un ? `<span class="count">${un}</span>` : l ? `<span class="tiny muted">${ago(l.at)}</span>` : ''}</a>`; };
+    return `<div class="hero-greet"><div><h1>Messages</h1><p class="muted">${S.me.role === 'parent' ? 'Talk with your child’s teachers and the principal.' : S.me.role === 'board' ? 'Reach principals directly.' : 'Teachers, families and the principal, all in one place.'}</p></div></div>
+      <div class="inbox card">
+        <div class="threads"><input type="search" placeholder="Search people…" data-filter=".thread" aria-label="Search people">
+          ${threads.map(row).join('')}
+          ${others.length ? `<div class="tiny muted" style="padding:14px 10px 6px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)">Start a conversation</div>${others.map(row).join('')}` : ''}</div>
+        <div class="conv">${sel ? `<div class="convhead"><span class="avatar">${esc(initials(sel.name))}</span><div><b>${esc(sel.name)}</b><div class="tiny muted">${esc(sel.label)}</div></div></div>
+          <div class="chat" id="chat">${conv.length ? conv.map((m) => `<div class="msg ${m.from === S.me.id ? 'me' : 'bot'}">${esc(m.body)}<div class="tiny" style="opacity:.65;margin-top:4px">${ago(m.at)}</div></div>`).join('') : `<div class="empty">Say hello to ${esc(first(sel.name))}.</div>`}</div>
+          <form class="chatform" data-form="message" data-to="${esc(sel.id)}"><label class="sr" for="mb">Message</label><input id="mb" name="body" type="text" autocomplete="off" required placeholder="Write a message…"><button class="btn">${icon('mail')} Send</button></form>` : '<div class="empty">No one to message yet.</div>'}</div>
+      </div>
+      <p class="tiny muted section">Messages are between adults only: staff, families, the principal and the board. Students get help from Orbit AI and from teachers in class.</p>`;
+  }
+  function markThreadRead() {
+    const r = route(); if (r.parts[0] !== 'messages' || !S.messages) return;
+    const w = r.q.with || ((S.contacts || []).find((c) => S.messages.some((m) => m.from === c.id || m.to === c.id)) || {}).id;
+    if (!w || !S.messages.some((m) => m.from === w && m.to === S.me.id && !m.read)) return;
+    S.messages.forEach((m) => { if (m.from === w && m.to === S.me.id) m.read = true; });
+    api('/api/messages/read', { with: w }).catch(() => {});
+    const c = document.getElementById('chat'); if (c) c.scrollTop = c.scrollHeight;
+  }
+
+  // ---------- seasonal surprises ----------
+  const SEASONS = {
+    winter: { label: 'Winter', icon: '❄️', shape: 'snow', colors: ['#FFFFFF', '#DCEBFF', '#BFD9FF'], pun: 'Snow problem! Let’s make it a cool day of learning.' },
+    spring: { label: 'Spring', icon: '🌸', shape: 'petal', colors: ['#FFC4DD', '#FF9EC7', '#FFE1EE'], pun: 'Spring into learning: your brain is in full bloom!' },
+    summer: { label: 'Summer', icon: '☀️', shape: 'sparkle', colors: ['#FFD166', '#FFE29A', '#FFFFFF'], pun: 'Sun’s out, puns out. Stay bright!' },
+    fall: { label: 'Fall', icon: '🍂', shape: 'leaf', colors: ['#F59E0B', '#EA580C', '#B45309', '#DC2626', '#FBBF24'], pun: 'Leaf it to us: this term is falling right into place.' },
+    newyear: { label: 'New Year', icon: '🎉', shape: 'confetti', colors: ['#2EE6D6', '#7C6CFF', '#FF6FB5', '#FFC46B'], pun: `New year, new knowledge. Let’s make ${new Date().getFullYear()} count!` },
+    valentine: { label: 'Valentine’s Day', icon: '💖', shape: 'heart', colors: ['#FF6FB5', '#FF3D7F', '#FFB3D1'], pun: 'We’re totally in love with learning. You’re a-MAZE-ing!' },
+    stpat: { label: 'St. Patrick’s Day', icon: '☘️', shape: 'emoji', emoji: ['☘️', '🍀'], pun: 'Lucky to have you in class. Shamrock on!' },
+    earth: { label: 'Earth Day', icon: '🌍', shape: 'emoji', emoji: ['🌱', '🍃', '🌍'], pun: 'Earth Day: keep your learning evergreen.' },
+    canada: { label: 'Canada Day', icon: '🍁', shape: 'emoji', emoji: ['🍁'], pun: 'Happy Canada Day, eh! You’re true north strong.' },
+    thanksgiving: { label: 'Thanksgiving', icon: '🦃', shape: 'emoji', emoji: ['🍂', '🍁', '🥧'], pun: 'Grateful for every brain in this class. Gobble up some knowledge!' },
+    halloween: { label: 'Halloween', icon: '🎃', shape: 'emoji', emoji: ['🎃', '🦇', '👻', '🍬'], pun: 'Have a spook-tacular day. No tricks, just treats of knowledge!' },
+    remembrance: { label: 'Remembrance Day', icon: '', shape: 'none', solemn: true, pun: 'Lest we forget. Join us for two minutes of silence at 11 a.m.' },
+    winterbreak: { label: 'Winter Break', icon: '⛄', shape: 'snow', colors: ['#FFFFFF', '#DCEBFF'], pun: 'Have an ice break! Happy holidays from all of us.' },
+  };
+  function seasonKey(d = new Date()) {
+    const m = d.getMonth() + 1, day = d.getDate();
+    const secondMonOct = (() => { const x = new Date(d.getFullYear(), 9, 1); const off = (8 - x.getDay()) % 7; return 1 + off + 7; })();
+    if (m === 1 && day <= 3) return 'newyear';
+    if (m === 2 && day >= 12 && day <= 14) return 'valentine';
+    if (m === 3 && day >= 15 && day <= 17) return 'stpat';
+    if (m === 4 && day >= 20 && day <= 22) return 'earth';
+    if ((m === 6 && day >= 29) || (m === 7 && day === 1)) return 'canada';
+    if (m === 10 && Math.abs(day - secondMonOct) <= 2) return 'thanksgiving';
+    if (m === 10 && day >= 25) return 'halloween';
+    if (m === 11 && day >= 10 && day <= 11) return 'remembrance';
+    if (m === 12 && day >= 18) return 'winterbreak';
+    return m === 12 || m <= 2 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'fall';
+  }
+  let fxOn = false; const played = new Set();
+  function seasonAuto(r) {
+    if (!S || !brandOf().seasonal || fxOn) return;
+    let key = null, c = null;
+    if (r.parts[0] === 'home' || !r.parts[0]) { key = 'home'; if (S.labels.level === 'kinder' && S.classes[0]) c = S.classes[0]; }
+    if (r.parts[0] === 'class') c = S.classes.find((x) => x.id === r.parts[1]);
+    if (r.parts[0] === 'vault' && r.parts[1]) { const rc = S.recaps.find((x) => x.id === r.parts[1]); c = rc && cls(rc.classId); }
+    if (c) key = 'class:' + c.id;
+    if (!key || played.has(key) || (c && c.look && !c.look.seasonal)) return;
+    let ss = null; try { ss = sessionStorage.getItem('ol-fx-' + S.me.id + key); } catch (e) { /* storage unavailable */ }
+    played.add(key);
+    if (ss) return;
+    try { sessionStorage.setItem('ol-fx-' + S.me.id + key, '1'); } catch (e) { /* ignore */ }
+    setTimeout(() => playSeason(), 500);
+  }
+  let fxKill = null, fxTok = 0;
+  function playSeason(k, manual) {
+    if (fxOn && manual && fxKill) fxKill();
+    if (fxOn) return; fxOn = true;
+    const tok = ++fxTok;
+    const s = SEASONS[k || seasonKey()];
+    const card = document.createElement('div');
+    card.className = 'puncard' + (s.solemn ? ' solemn' : '');
+    card.setAttribute('role', 'status');
+    card.innerHTML = `<span class="pi">${s.solemn ? '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#D7263D"/><circle cx="12" cy="12" r="3.4" fill="#111"/></svg>' : s.icon}</span><div><b>${esc(s.label)}</b><p>${esc(s.pun)}</p></div><button aria-label="Close" data-act="fxclose">×</button>`;
+    document.body.appendChild(card);
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches || s.shape === 'none';
+    let cv = null, raf = 0;
+    const end = () => { if (card._done) return; card._done = true; cancelAnimationFrame(raf); card.classList.add('out'); if (cv) cv.classList.add('out'); setTimeout(() => { card.remove(); cv && cv.remove(); if (tok === fxTok) { fxOn = false; fxKill = null; } }, 900); };
+    card._end = end;
+    fxKill = () => { card._done = true; cancelAnimationFrame(raf); card.remove(); if (cv) cv.remove(); fxOn = false; fxKill = null; };
+    setTimeout(end, s.solemn ? 9000 : 8500);
+    if (still) return;
+    cv = document.createElement('canvas'); cv.id = 'fx'; document.body.appendChild(cv);
+    const ctx = cv.getContext('2d'); const dpr = Math.min(devicePixelRatio || 1, 2);
+    const W = (cv.width = innerWidth * dpr), H = (cv.height = innerHeight * dpr);
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const make = (top) => ({ x: Math.random() * W, y: top ? -Math.random() * H * 0.6 : -20 * dpr, vy: (0.6 + Math.random() * 1.4) * dpr * (s.shape === 'snow' ? 0.8 : 1.2), vx: (Math.random() - 0.5) * dpr, r: (s.shape === 'emoji' ? 22 + Math.random() * 16 : s.shape === 'snow' ? 2 + Math.random() * 3.5 : 7 + Math.random() * 7) * dpr, a: Math.random() * 6.28, va: (Math.random() - 0.5) * 0.06, sw: Math.random() * 6.28, c: s.colors ? pick(s.colors) : null, e: s.emoji ? pick(s.emoji) : null });
+    const ps = Array.from({ length: s.shape === 'snow' ? 140 : s.shape === 'emoji' ? 34 : 70 }, () => make(true));
+    const t0 = performance.now();
+    function draw(p) {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c || '#fff'; ctx.globalAlpha = 0.92;
+      if (s.shape === 'snow') { ctx.beginPath(); ctx.arc(0, 0, p.r, 0, 6.283); ctx.fill(); }
+      else if (s.shape === 'leaf') { ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * 0.5, 0, 0, 6.283); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = dpr; ctx.beginPath(); ctx.moveTo(-p.r, 0); ctx.lineTo(p.r, 0); ctx.stroke(); }
+      else if (s.shape === 'petal') { ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.7, p.r * 0.42, 0, 0, 6.283); ctx.fill(); }
+      else if (s.shape === 'confetti') { ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); }
+      else if (s.shape === 'heart') { const r = p.r / 1.6; ctx.beginPath(); ctx.moveTo(0, r * 0.9); ctx.bezierCurveTo(-r * 1.6, -r * 0.2, -r * 0.6, -r * 1.4, 0, -r * 0.5); ctx.bezierCurveTo(r * 0.6, -r * 1.4, r * 1.6, -r * 0.2, 0, r * 0.9); ctx.fill(); }
+      else if (s.shape === 'sparkle') { const r = p.r * 0.8; ctx.beginPath(); for (let i = 0; i < 8; i++) { const rr = i % 2 ? r * 0.3 : r; ctx.lineTo(Math.cos((i * Math.PI) / 4) * rr, Math.sin((i * Math.PI) / 4) * rr); } ctx.closePath(); ctx.fill(); }
+      else if (s.shape === 'emoji') { ctx.font = `${p.r}px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.e, 0, 0); }
+      ctx.restore();
+    }
+    (function frame(now) {
+      const t = (now - t0) / 1000; ctx.clearRect(0, 0, W, H);
+      ps.forEach((p, i) => { p.sw += 0.03; p.x += p.vx + Math.sin(p.sw) * 0.8 * dpr; p.y += p.vy; p.a += p.va; if (p.y > H + 40 * dpr && t < 6) ps[i] = make(false); draw(p); });
+      if (t < 12) raf = requestAnimationFrame(frame);
+    })(t0);
+  }
   // ---------- knowledge map ----------
   const mColor = (v, a = 1) => { if (v == null) return 'transparent'; const t = Math.max(0, Math.min(1, (v - 30) / 65)); const h = t < 0.5 ? 340 + (t / 0.5) * 60 : 40 + ((t - 0.5) / 0.5) * 130; return `hsla(${h % 360},85%,${isKid() ? 55 : 62}%,${a})`; };
   const gColor = (g, a = 1) => (g == null ? 'transparent' : mColor(100 - g * 1.4, a));
@@ -794,8 +952,19 @@
   function settingsPage() {
     const lv = S.school.level;
     const opts = [['kinder', 'Kindergarten', 'Little Orbit: big read-aloud lesson cards, stickers, one-tap answers.'], ['elementary', 'Elementary', 'Parent-first dashboards, simple recaps, badges and streaks.'], ['middle', 'Middle school', 'Recaps and study tools, badges for engagement.'], ['high', 'High school', 'Detailed recaps, Study Vault, parent alerts for grades and absences.'], ['university', 'College & university', 'Full lecture digests; advisors replace parents; study groups.']];
+    const b = brandOf();
     return `<h1>Settings</h1>
-      <form class="card" data-form="level"><h2>School level</h2><p class="small muted">Sets the default for school-wide screens. Each student’s own view already adapts to their grade: Kindergarten gets Little Orbit, university gets a focused professional layout.</p>
+      <form class="card" data-form="brand"><h2>School branding</h2><p class="small muted">Your mascot and colours show across OrbitLearn for every student, family and teacher.</p>
+        <div class="grid g2" style="align-items:start"><div>
+          <label>Mascot</label><div class="mascots">${Object.entries(S.mascots || {}).map(([k, e]) => `<label class="mc"><input type="radio" name="mascot" value="${k}" ${b.mascot === k ? 'checked' : ''}><span>${e}</span></label>`).join('')}</div>
+          <label for="mn">Team name</label><input id="mn" name="mascotName" type="text" maxlength="40" value="${esc(b.mascotName || '')}">
+          <div class="formrow"><div><label for="p1">Primary colour</label><input id="p1" name="primary" type="color" value="${esc(b.primary || '#1F4FD8')}"></div><div><label for="p2">Secondary colour</label><input id="p2" name="secondary" type="color" value="${esc(b.secondary || '#F5B700')}"></div></div>
+          <label class="check"><input type="checkbox" name="useColors" ${b.useColors ? 'checked' : ''}> Use school colours for buttons and highlights</label>
+          <label class="check"><input type="checkbox" name="seasonal" ${b.seasonal ? 'checked' : ''}> Seasonal surprises (teachers can still turn them off for their class)</label>
+          <button class="btn" style="margin-top:12px">Save branding</button></div>
+          <div><label>Preview a seasonal surprise</label><div class="chips">${Object.entries(SEASONS).map(([k, x]) => `<button type="button" class="chip" data-act="preview" data-k="${k}">${x.icon || '🕊️'} ${esc(x.label)}</button>`).join('')}</div>
+          <p class="small muted" style="margin-top:12px">Today’s is <b>${esc(SEASONS[seasonKey()].label)}</b>. It plays once when someone opens their home or a class, then fades back to that class’s own look. Remembrance Day is shown quietly, with no animation or jokes.</p></div></div></form>
+      <form class="card section" data-form="level"><h2>School level</h2><p class="small muted">Sets the default for school-wide screens. Each student’s own view already adapts to their grade: Kindergarten gets Little Orbit, university gets a focused professional layout.</p>
         ${opts.map(([v, l, d]) => `<label class="check" style="align-items:flex-start"><input type="radio" name="level" value="${v}" ${lv === v ? 'checked' : ''}> <span><b>${l}</b><br><span class="small muted">${d}</span></span></label>`).join('')}
         <button class="btn" style="margin-top:12px">Save</button></form>
       <div class="card section"><h2>Demo data</h2><p class="small muted">Reset the school back to the original sample data. Everyone will be signed out.</p><button class="btn danger" data-act="reset">Reset demo</button></div>`;
@@ -824,6 +993,11 @@
       else if (act === 'nav') { navOpen = !navOpen; render(); }
       else if (act === 'bell') { panelOpen = !panelOpen; render(); if (panelOpen && S.notifications.some((n) => !n.read)) { await api('/api/notifications/read', {}); S.notifications.forEach((n) => (n.read = true)); } }
       else if (act === 'listen') { e.preventDefault(); e.stopPropagation(); speak(t.dataset.text); }
+      else if (act === 'season') playSeason(null, true);
+      else if (act === 'fxclose') { const k = t.closest('.puncard'); if (k && k._end) k._end(); }
+      else if (act === 'preview') playSeason(t.dataset.k, true);
+      else if (act === 'look') lookModal(S.classes.find((x) => x.id === t.dataset.class));
+      else if (act === 'pickemoji') { const f = t.closest('form'); f.emoji.value = t.dataset.e; }
       else if (act === 'star') { starSel = t.dataset.id; render(); }
       else if (act === 'check') { t.disabled = true; const r = await api('/api/check', { classId: t.dataset.class, kind: t.dataset.kind }); toast(`${t.dataset.kind === 'exit' ? 'Exit ticket' : 'Warm-up'} sent. Class answered ${r.correctPct}% correctly so far.`); await refresh(); }
       else if (act === 'assign') { t.disabled = true; const r = await api('/api/foundation/assign', { classId: t.dataset.class, conceptId: t.dataset.concept }); toast(`Foundation lesson sent to ${r.sent} student${r.sent === 1 ? '' : 's'}.`); await refresh(); }
@@ -887,6 +1061,9 @@
         location.hash = '#/home'; await refresh(); return;
       }
       if (kind === 'chat') { f.q.value = ''; await ask(v.q); return; }
+      if (kind === 'message') { await api('/api/messages', { to: f.dataset.to, body: v.body }); }
+      if (kind === 'look') { await api('/api/class/look', { classId: f.dataset.class, theme: v.theme, emoji: v.emoji, banner: v.banner, seasonal: !!v.seasonal }); document.querySelector('.modal') && document.querySelector('.modal').remove(); toast('Class look saved. Students see it right away.'); }
+      if (kind === 'brand') { await api('/api/settings', { brand: { mascot: v.mascot, mascotName: v.mascotName, primary: v.primary, secondary: v.secondary, useColors: !!v.useColors, seasonal: !!v.seasonal } }); toast('School branding saved.'); }
       if (kind === 'post') { await api('/api/community', v); toast('Posted.'); }
       if (kind === 'reply') { await api('/api/community/reply', { id: f.dataset.id, body: v.body }); }
       if (kind === 'meeting') { await api('/api/meetings', { teacherId: v.teacherId, reason: v.reason, slot: `${fmtDate(v.date)}, ${v.time}` }); toast('Request sent. You’ll get an email when it’s confirmed.'); }
