@@ -302,3 +302,49 @@ details.signin summary{cursor:pointer;color:var(--ink-2);font-weight:600;font-si
 }
 @media print{.side,.top,.mobilebar,.noprint,#stars,.aurora{display:none!important}.shell{display:block}main{padding:0}.card{box-shadow:none;break-inside:avoid;backdrop-filter:none}body{background:#fff;color:#000}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* knowledge map */
+.mapwrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px;align-items:start}
+.starcard{padding:10px;background:radial-gradient(circle at 50% 50%,rgba(124,108,255,.12),rgba(0,0,0,0) 60%),var(--card)}
+.starmap{width:100%;height:auto;display:block}
+.starmap .ringline{fill:none;stroke:var(--line-2);stroke-width:1}
+.starmap .ringline.future{stroke-dasharray:3 6;opacity:.6}
+.starmap .ringlbl{font:500 11px var(--mono);fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.starmap .branchlbl{font:600 14px var(--display);fill:var(--ink-2);letter-spacing:.12em;text-transform:uppercase}
+.starmap .edge{fill:none;stroke:rgba(169,159,255,.32);stroke-width:1.2}
+.starmap .edge.weak{stroke:rgba(255,111,181,.45);stroke-dasharray:4 4}
+.starmap .star{cursor:pointer;outline:none}
+.starmap .star text{font:500 13.5px var(--body);fill:var(--ink-2);pointer-events:none}
+.starmap .star:hover text,.starmap .star.sel text,.starmap .star:focus text{fill:var(--ink);font-weight:700}
+.starmap .mastered .core{fill:#E9FFFC;stroke:#2EE6D6;stroke-width:2}
+.starmap .learning .core{fill:#FFC46B;stroke:#FFE2B0;stroke-width:1.5}
+.starmap .gap .core{fill:#0B0C24;stroke:#FF6FB5;stroke-width:2}
+.starmap .gap .halo{fill:none;stroke:#FF6FB5;stroke-width:1.2;opacity:.5;transform-box:fill-box;transform-origin:center;animation:halo 2.4s ease-out infinite}
+.starmap .sel .core{stroke-width:4}
+@keyframes halo{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);padding:6px 12px 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.lg-m{background:#E9FFFC;box-shadow:0 0 8px #2EE6D6}.lg-l{background:#FFC46B}.lg-g{border:2px solid #FF6FB5}
+.banner.live{background:linear-gradient(120deg,rgba(46,230,214,.16),rgba(124,108,255,.14));border-color:rgba(46,230,214,.4)}
+
+/* heatmaps */
+table.heat th{white-space:normal;vertical-align:bottom;min-width:84px;font-family:var(--body);text-transform:none;letter-spacing:0;font-size:12px;color:var(--ink-2)}
+table.heat th div{font-weight:600;color:var(--ink);line-height:1.25}
+table.heat th span{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+table.heat td{padding:6px 8px;text-align:center} table.heat td:first-child,table.heat th:first-child{text-align:left;white-space:nowrap}
+table.heat .split{border-left:2px dashed var(--line-2)}
+table.heat tr.sum td{border-bottom:1px solid var(--line-2)}
+.cell{display:inline-block;min-width:44px;padding:5px 6px;border-radius:9px;font:600 12.5px var(--mono);border:1px solid}
+.heatrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.hcell{border:1px solid;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.hcell b{font:700 20px var(--display)}
+.insight{border-radius:16px;padding:16px;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:8px}
+.insight.high{border-color:rgba(255,107,129,.4);background:linear-gradient(140deg,var(--high-soft),rgba(0,0,0,0))}
+.insight.watch{border-color:rgba(255,196,107,.35);background:linear-gradient(140deg,var(--watch-soft),rgba(0,0,0,0))}
+.insight p{margin:0;color:var(--ink-2)}
+.funnel{display:grid;grid-template-columns:130px minmax(0,1fr) 46px 40px;gap:10px;align-items:center;margin:10px 0}
+.funnel b{text-align:right;font-family:var(--display)}
+.demo .avatar.b{background:linear-gradient(135deg,#FFC46B,#7C6CFF)}
+.demos .demo:last-child:nth-child(odd){grid-column:1/-1}
+@media (max-width:1100px){.mapwrap{grid-template-columns:1fr}}

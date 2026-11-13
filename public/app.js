@@ -37,7 +37,7 @@
     bell: '<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 003.4 0"/>', out: '<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
     alert: '<path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/>', menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
     star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>', check: '<path d="M20 6L9 17l-5-5"/>', award: '<circle cx="12" cy="8" r="6"/><path d="M8.2 13.4L7 22l5-3 5 3-1.2-8.6"/>', bolt: '<path d="M13 2L3 14h9l-1 8 10-12h-9z"/>',
-    ear: '<path d="M6 8.5a6 6 0 1112 0c0 3.5-3 4.5-3 7.5a3.5 3.5 0 01-7 0"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-1.5 2-1.5 3"/>', ladder: '<path d="M7 3v18M17 3v18M7 8h10M7 13h10M7 18h10"/>', play: '<path d="M7 4l13 8-13 8z"/>',
+    ear: '<path d="M6 8.5a6 6 0 1112 0c0 3.5-3 4.5-3 7.5a3.5 3.5 0 01-7 0"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-1.5 2-1.5 3"/>', ladder: '<path d="M7 3v18M17 3v18M7 8h10M7 13h10M7 18h10"/>', play: '<path d="M7 4l13 8-13 8z"/>', orbit: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-25 12 12)"/><circle cx="20" cy="7" r="1.2"/>',
     class: '<path d="M2 7l10-4 10 4-10 4z"/><path d="M6 9v5c0 2 3 3.5 6 3.5s6-1.5 6-3.5V9"/>', print: '<path d="M6 9V2h12v7"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v8H6z"/>',
   };
   const icon = (n) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ''}</svg>`;
@@ -96,10 +96,11 @@
   function navFor(role) {
     const L = S.labels;
     if (role === 'student' && L.level === 'kinder') return [['home', 'My day', 'home'], ['vault', 'My lessons', 'book'], ['assistant', 'Ask Orbit', 'spark'], ['assignments', 'My jobs', 'star']];
-    if (role === 'student') return [['home', 'Home', 'home'], ['assignments', 'Assignments', 'clip'], ['vault', 'Study Vault', 'book'], ['assistant', 'Orbit AI', 'spark'], ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
-    if (role === 'parent') return [['home', 'Home', 'home'], ['assignments', 'Homework', 'clip'], ['vault', 'Class recaps', 'book'], ['meetings', 'Meetings', 'cal'], ['community', L.community, 'users'], ['announcements', 'Announcements', 'mega']];
+    if (role === 'board') return [['home', 'Board overview', 'home'], ['review', 'Review planner', 'book'], ['announcements', 'Announcements', 'mega']];
+    if (role === 'student') return [['home', 'Home', 'home'], ['map', 'My map', 'orbit'], ['assignments', 'Assignments', 'clip'], ['vault', 'Study Vault', 'book'], ['assistant', 'Orbit AI', 'spark'], ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
+    if (role === 'parent') return [['home', 'Home', 'home'], ['map', 'Learning map', 'orbit'], ['assignments', 'Homework', 'clip'], ['vault', 'Class recaps', 'book'], ['meetings', 'Meetings', 'cal'], ['community', L.community, 'users'], ['announcements', 'Announcements', 'mega']];
     if (role === 'teacher') return [['home', 'Home', 'home'], ...S.classes.map((c) => [`class/${c.id}`, c.name, 'class']), ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
-    return [['home', 'School overview', 'home'], ['announcements', 'Announcements', 'mega'], ['email', 'Email log', 'mail'], ['meetings', 'Meetings', 'cal'], ['settings', 'Settings', 'gear']];
+    return [['home', 'School overview', 'home'], ['gaps', 'Learning gaps', 'ladder'], ['announcements', 'Announcements', 'mega'], ['email', 'Email log', 'mail'], ['meetings', 'Meetings', 'cal'], ['settings', 'Settings', 'gear']];
   }
 
   // ---------- render ----------
@@ -113,15 +114,15 @@
     const unread = S.notifications.filter((n) => !n.read).length;
     let body;
     try { body = page(key, r); } catch (e) { console.error(e); body = `<div class="card">That page didn't load. <a href="#/home">Go home</a></div>`; }
-    const levelName = { kinder: 'Kindergarten', elementary: 'Elementary', middle: 'Middle school', high: 'High school', university: 'University' }[S.labels.level] || 'School';
-    const roleName = S.me.role === 'parent' ? S.labels.guardian : S.me.role === 'teacher' ? S.labels.teacher : S.me.role === 'student' ? (S.me.gradeLabel || 'Student') : 'Admin';
+    const levelName = S.me.role === 'board' ? 'District' : { kinder: 'Kindergarten', elementary: 'Elementary', middle: 'Middle school', high: 'High school', university: 'University' }[S.labels.level] || 'School';
+    const roleName = S.me.role === 'parent' ? S.labels.guardian : S.me.role === 'teacher' ? S.labels.teacher : S.me.role === 'student' ? (S.me.gradeLabel || 'Student') : S.me.role === 'board' ? 'Superintendent' : 'Principal';
     app.innerHTML = `
       <div class="mobilebar"><button data-act="nav" aria-label="Open menu">${icon('menu')}</button>${brand()}<span></span></div>
       <div class="shell">
         <aside class="side ${navOpen ? 'open' : ''}" aria-label="Main">
           ${brand()}
           <nav>${nav.map(([h, l, i]) => `<a href="#/${h}" class="${cur === h || (h !== 'home' && cur.startsWith(h + '/')) || (h === 'home' && key === 'home') ? 'on' : ''}">${icon(i)}${esc(l)}</a>`).join('')}</nav>
-          <div class="who"><span class="avatar">${esc(initials(S.me.name))}</span><div><b>${esc(S.me.name)}</b>${esc(roleName)} · ${esc(S.school.name)}</div></div>
+          <div class="who"><span class="avatar">${esc(initials(S.me.name))}</span><div><b>${esc(S.me.name)}</b>${esc(roleName)} · ${esc(S.me.role === 'board' ? S.board.name : S.school.name)}</div></div>
         </aside>
         <main id="main">
           <div class="top">
@@ -142,9 +143,14 @@
   function page(key, r) {
     const role = S.me.role;
     const P = {
-      home: () => (role === 'student' ? (S.labels.level === 'kinder' ? kinderHome() : studentHome()) : role === 'parent' ? parentHome() : role === 'teacher' ? teacherHome() : adminHome()),
+      home: () => (role === 'student' ? (S.labels.level === 'kinder' ? kinderHome() : studentHome()) : role === 'parent' ? parentHome() : role === 'teacher' ? teacherHome() : role === 'board' ? boardHome() : adminHome()),
       assignments: () => assignmentsPage(),
       foundation: () => foundationPage(r.parts[1], r.q.from),
+      map: () => mapPage(),
+      check: () => checkPage(r.parts[1]),
+      gaps: () => gapsPage(),
+      review: () => reviewPage(r.q),
+      school: () => schoolPage(r.parts[1]),
       vault: () => (r.parts[1] ? recapPage(r.parts[1]) : vaultPage(r.q)),
       exam: () => examPage(r.parts[1]),
       assistant: () => assistantPage(),
@@ -166,7 +172,8 @@
       ['uni', 'u', 'Jordan, 20', 'University · BIO 201'],
       ['parent', '', 'Dana Brooks', 'Parent · Tyler’s mom'],
       ['teacher', '', 'Ms. Rivera', 'Teacher · Biology & English'],
-      ['admin', '', 'Principal Grant', 'School admin'],
+      ['admin', '', 'Principal Grant', 'School principal'],
+      ['board', 'b', 'Dr. Okoye', 'Superintendent · school board'],
     ];
     app.innerHTML = `
     <div class="login">
@@ -307,6 +314,7 @@
     const upcoming = S.assignments.filter((a) => a.state === 'todo' || a.state === 'missing').slice(0, 5);
     return `${urgentStrip()}
       <div class="hero-greet"><div><h1>Hey ${esc(first(S.me.name))}, <span class="gtext">let’s go.</span></h1><p class="muted">${esc(S.me.gradeLabel || '')} · ${esc(S.school.name)}</p></div><a class="btn" href="#/assistant">${icon('spark')} Ask Orbit AI</a></div>
+      ${checkBanner()}
       ${studentBrief()}
       ${riskBanner('student')}
       <div class="grid g2 section">
@@ -353,9 +361,9 @@
   function flashGrid(cards) {
     return `<div class="grid g3">${cards.map((c) => `<button class="flash" data-act="flip" aria-label="Flashcard: ${esc(c.front)}. Click to flip."><div class="in"><div class="f">${esc(c.front)}</div><div class="b">${esc(c.back)}</div></div></button>`).join('')}</div><p class="tiny muted" style="margin-top:8px">Tap a card to flip it.</p>`;
   }
-  function quizBlock(qs, label) {
+  function quizBlock(qs, label, checkId) {
     if (!qs.length) return '<div class="empty">No quiz questions yet.</div>';
-    return `<div class="quizset" data-label="${esc(label)}" data-total="${qs.length}">${qs.map((q, i) => `<div class="qz" data-ans="${q.answer}"><b>${i + 1}. ${esc(q.question)}</b><div class="opts">${q.options.map((o, j) => `<button class="opt" data-act="answer" data-i="${j}">${esc(o)}</button>`).join('')}</div></div>`).join('')}<div class="qresult" aria-live="polite"></div></div>`;
+    return `<div class="quizset" data-label="${esc(label)}" data-total="${qs.length}"${checkId ? ` data-check="${esc(checkId)}"` : ''}>${qs.map((q, i) => `<div class="qz" data-ans="${q.answer}"><b>${i + 1}. ${esc(q.question)}</b><div class="opts">${q.options.map((o, j) => `<button class="opt" data-act="answer" data-i="${j}">${esc(o)}</button>`).join('')}</div></div>`).join('')}<div class="qresult" aria-live="polite"></div></div>`;
   }
 
   function recapPage(id) {
@@ -544,8 +552,8 @@
   function classPage(id, tab) {
     const c = S.classes.find((x) => x.id === id);
     if (!c) return '<div class="card">Class not found.</div>';
-    const tabs = [['roster', 'Roster'], ['attendance', 'Attendance'], ['assignments', 'Assignments'], ['recaps', 'AI recaps'], ['shout', 'Shoutouts & posts']];
-    const content = { roster: rosterTab, attendance: attendanceTab, assignments: assignTab, recaps: recapsTab, shout: shoutTab }[tab] || rosterTab;
+    const tabs = [['map', 'Knowledge map'], ['roster', 'Roster'], ['attendance', 'Attendance'], ['assignments', 'Assignments'], ['recaps', 'AI recaps'], ['shout', 'Shoutouts & posts']];
+    const content = { map: classMapTab, roster: rosterTab, attendance: attendanceTab, assignments: assignTab, recaps: recapsTab, shout: shoutTab }[tab] || rosterTab;
     return `${subj(c)}<h1 style="margin-top:6px">${esc(c.name)}</h1><p class="muted">${esc(c.room)} · ${c.roster.length} students</p>
       <nav class="tabs" aria-label="Class sections">${tabs.map(([k, l]) => `<a href="#/class/${esc(c.id)}?tab=${k}" class="${tab === k ? 'on' : ''}">${l}</a>`).join('')}</nav>${content(c)}`;
   }
@@ -595,6 +603,157 @@
         <button class="btn" style="margin-top:12px">Send shoutout</button><p class="tiny muted" style="margin-top:8px">The student and their ${esc(S.labels.guardian.toLowerCase())} both see it.</p></form>
       <div class="card"><h2>Recent</h2>${shoutoutList(S.shoutouts.filter((s) => s.classId === c.id), 8)}</div></div>
       <p class="section small muted">Class announcements live under <a href="#/announcements">Announcements</a>.</p>`;
+  }
+
+  // ---------- knowledge map ----------
+  const mColor = (v, a = 1) => { if (v == null) return 'transparent'; const t = Math.max(0, Math.min(1, (v - 30) / 65)); const h = t < 0.5 ? 340 + (t / 0.5) * 60 : 40 + ((t - 0.5) / 0.5) * 130; return `hsla(${h % 360},85%,${isKid() ? 55 : 62}%,${a})`; };
+  const gColor = (g, a = 1) => (g == null ? 'transparent' : mColor(100 - g * 1.4, a));
+  const lvlName = { mastered: 'Mastered', learning: 'Getting there', gap: 'Dark star', none: 'Not started' };
+  let starSel = null;
+  function mapPage() {
+    const M = S.map || [];
+    const who = S.me.role === 'parent' ? first(S.student.name) : null;
+    const n = (l) => M.filter((c) => c.level === l).length;
+    const pct = Math.round((n('mastered') / (M.length || 1)) * 100);
+    const gaps = M.filter((c) => c.level === 'gap').sort((a, b) => a.grade - b.grade);
+    const sel = M.find((c) => c.id === starSel) || gaps[0] || M[0];
+    return `<div class="hero-greet"><div><span class="ai-chip">${icon('orbit')} Knowledge map</span><h1 style="margin-top:10px">${who ? `${esc(who)}'s universe of learning` : 'Your universe of learning'}</h1><p class="muted">Every concept from Kindergarten to now. Bright stars are mastered. Dark stars are the gaps that make new topics feel hard.</p></div></div>
+      <div class="grid g4"><div class="card stat"><div class="l">Constellation</div><div class="v gtext">${pct}%</div></div><div class="card stat"><div class="l">Mastered</div><div class="v">${n('mastered')}</div></div><div class="card stat"><div class="l">Getting there</div><div class="v" style="color:var(--watch)">${n('learning')}</div></div><div class="card stat"><div class="l">Dark stars</div><div class="v" style="color:var(--pink)">${n('gap')}</div></div></div>
+      <div class="mapwrap section"><div class="card starcard">${starMap(M, sel && sel.id)}<div class="legend"><span><i class="lg-m"></i>Mastered</span><span><i class="lg-l"></i>Getting there</span><span><i class="lg-g"></i>Dark star</span><span class="muted">Inner ring = Kindergarten · outer = ${esc(S.me.role === 'student' ? S.me.gradeLabel : S.student.gradeLabel)}</span></div></div>
+        <div>${sel ? starDetail(sel, M) : ''}
+          <div class="card section"><h2>Light these up next</h2>${gaps.length ? `<div class="found">${gaps.slice(0, 5).map((c) => `<a class="fnd" href="${starHref(c)}"><span class="rung">${esc(c.gradeLabel)}</span><span><b>${esc(c.name)}</b><div class="small muted">${c.mastery}% · ${esc(cap(c.branch))}</div></span><span class="small" style="color:var(--teal)">Go →</span></a>`).join('')}</div>` : '<div class="empty">No dark stars. Your sky is lit!</div>'}</div></div></div>`;
+  }
+  const cap = (x) => x[0].toUpperCase() + x.slice(1);
+  function starHref(c) { return S.foundations && S.foundations[c.lessonId] ? `#/foundation/${c.lessonId}` : `#/vault/${c.lessonId}`; }
+  function starDetail(c, M) {
+    const pre = c.pre.map((p) => M.find((x) => x.id === p)).filter(Boolean);
+    const weakPre = pre.filter((p) => p.level === 'gap');
+    return `<div class="card"><span class="pill ${c.level === 'mastered' ? 'ok' : c.level === 'learning' ? 'watch' : 'high'}">${lvlName[c.level]}</span><h2 style="margin-top:10px">${esc(c.name)}</h2><p class="small muted">${esc(c.gradeLabel)} · ${esc(cap(c.branch))} · ${c.mastery ?? '–'}% mastery</p>
+      <div class="bar" style="margin:8px 0 14px"><i style="width:${c.mastery || 0}%;background:${mColor(c.mastery)}"></i></div>
+      ${pre.length ? `<div class="small"><b>Built on</b></div><div class="chips" style="margin:6px 0 12px">${pre.map((p) => `<button class="chip" data-act="star" data-id="${esc(p.id)}"><span class="dot" style="background:${mColor(p.mastery)};color:${mColor(p.mastery)}"></span> ${esc(p.name)}</button>`).join('')}</div>` : ''}
+      ${weakPre.length ? `<p class="small">Orbit AI: <b>${esc(weakPre[0].name)}</b> (${esc(weakPre[0].gradeLabel)}) is still dark. Light that one first and this star gets easier.</p>` : ''}
+      ${c.lessonId ? `<a class="btn sm" href="${starHref(c)}">${c.level === 'mastered' ? 'Review' : 'Light it up'} →</a>` : ''}</div>`;
+  }
+  function starMap(M, selId) {
+    const W = 900, cx = 450, cy = 450;
+    const R = { 0: 62, e: 142, m: 222, h: 292, u: 352 };
+    const ring = (g) => (g === 0 ? R[0] : g <= 5 ? R.e : g <= 8 ? R.m : g <= 12 ? R.h : R.u);
+    const SECT = { science: [18, 145], english: [150, 246], math: [256, 344] };
+    const pos = {};
+    const kids = M.filter((c) => c.grade === 0);
+    kids.forEach((c, i) => { const deg = 30 + (i * 360) / kids.length; const rad = ((deg - 90) * Math.PI) / 180; pos[c.id] = [cx + Math.cos(rad) * R[0], cy + Math.sin(rad) * R[0], deg]; });
+    Object.keys(SECT).forEach((br) => {
+      const list = M.filter((c) => c.branch === br && c.grade > 0).sort((a, b) => a.grade - b.grade);
+      const [a0, a1] = SECT[br];
+      list.forEach((c, j) => { const deg = a0 + ((j + 0.5) / list.length) * (a1 - a0); const rr = ring(c.grade) + (j % 2 ? 22 : -12); const rad = ((deg - 90) * Math.PI) / 180; pos[c.id] = [cx + Math.cos(rad) * rr, cy + Math.sin(rad) * rr, deg, j % 2]; });
+    });
+    const maxRing = Math.max(...M.map((c) => ring(c.grade)));
+    const rings = [[R[0], 'Kindergarten'], [R.e, 'Grades 1–5'], [R.m, 'Grades 6–8'], [R.h, 'Grades 9–12'], [R.u, 'University']];
+    const edges = M.flatMap((c) => c.pre.filter((p) => pos[p]).map((p) => { const [x1, y1] = pos[p], [x2, y2] = pos[c.id]; const g = c.level === 'gap' || M.find((x) => x.id === p).level === 'gap'; return `<path d="M${x1},${y1} Q${cx + (x1 + x2 - 2 * cx) * 0.35},${cy + (y1 + y2 - 2 * cy) * 0.35} ${x2},${y2}" class="edge ${g ? 'weak' : ''}"/>`; })).join('');
+    // labels: place beside each star, then nudge any that collide with an earlier label or a star
+    const boxes = [];
+    const stars = Object.values(pos).map(([x, y]) => [x - 8, y - 8, x + 8, y + 8]);
+    const hit = (b) => [...boxes, ...stars].some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
+    const lab = {};
+    M.slice().sort((a, b) => a.grade - b.grade).forEach((c) => {
+      const [x, y, deg] = pos[c.id]; const right = deg < 180; const w = c.name.length * 7.4 + 4;
+      const tries = [0, -16, 16, -32, 32, -48, 48];
+      for (const side of [right, !right]) {
+        for (const dy of tries) {
+          const lx = side ? x + 13 : x - 13; const ly = y + 4 + dy;
+          const bx = side ? [lx, ly - 12, lx + w, ly + 3] : [lx - w, ly - 12, lx, ly + 3];
+          if (!hit(bx) && bx[0] > 0 && bx[2] < W) { boxes.push(bx); lab[c.id] = [lx, ly, side ? 'start' : 'end']; return; }
+        }
+      }
+      lab[c.id] = [right ? x + 13 : x - 13, y + 4, right ? 'start' : 'end'];
+    });
+    const nodes = M.map((c) => { const [x, y] = pos[c.id]; const [lx, ly, anchor] = lab[c.id]; const s = c.id === selId; return `<g class="star ${c.level} ${s ? 'sel' : ''}" data-act="star" data-id="${esc(c.id)}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${esc(c.gradeLabel)}, ${lvlName[c.level]}">
+        ${c.level === 'gap' ? `<circle cx="${x}" cy="${y}" r="13" class="halo"/>` : ''}<circle cx="${x}" cy="${y}" r="${c.level === 'mastered' ? 7 : 6}" class="core" ${c.level !== 'gap' ? `filter="url(#glow)"` : ''}/>
+        <text x="${lx}" y="${ly}" text-anchor="${anchor}">${esc(c.name)}</text></g>`; }).join('');
+    return `<svg class="starmap" viewBox="0 0 ${W} ${W}" role="img" aria-label="Knowledge map">
+      <defs><filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><radialGradient id="sun"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#A99FFF"/><stop offset="1" stop-color="#7C6CFF" stop-opacity="0"/></radialGradient></defs>
+      ${rings.map(([r, l]) => `<circle cx="${cx}" cy="${cy}" r="${r}" class="ringline ${r > maxRing ? 'future' : ''}"/><text x="${cx}" y="${cy - r - 6}" class="ringlbl" text-anchor="middle">${l}</text>`).join('')}
+      <circle cx="${cx}" cy="${cy}" r="30" fill="url(#sun)"/>
+      ${[['Science', 62], ['English', 214], ['Math', 300]].map(([l, d]) => { const rad = ((d - 90) * Math.PI) / 180; return `<text x="${cx + Math.cos(rad) * 424}" y="${cy + Math.sin(rad) * 424 + 4}" class="branchlbl" text-anchor="middle">${l}</text>`; }).join('')}
+      ${edges}${nodes}</svg>`;
+  }
+
+  // live warm-up / exit ticket for students
+  function checkPage(id) {
+    const k = S.check && S.check.id === id ? S.check : null;
+    if (!k) return `<div class="card"><h2>All done here</h2><p class="muted">You've already answered this check, or it has closed.</p><a class="btn" href="#/map">See your knowledge map</a></div>`;
+    const c = cls(k.classId);
+    return `<div class="hero-greet"><div>${subj(c)}<h1 style="margin-top:6px">${k.kind === 'exit' ? 'Exit ticket' : 'Warm-up'}</h1><p class="muted">${k.questions.length} quick questions on ideas today's lesson builds on. No marks, it just lights up your map.</p></div></div>
+      <div class="card">${quizBlock(k.questions, 'Check', k.id)}</div>`;
+  }
+  function checkBanner() {
+    if (!S.check) return '';
+    return `<div class="banner live" style="margin-bottom:16px"><div><b>${icon('bolt')} ${S.check.kind === 'exit' ? 'Exit ticket' : 'Warm-up'} is live in ${esc(cls(S.check.classId).subject)}</b><div class="small">${S.check.questions.length} quick questions. Your teacher is waiting on the class.</div></div><a class="btn" href="#/check/${esc(S.check.id)}">Start now</a></div>`;
+  }
+
+  // teacher: class knowledge map
+  function classMapTab(c) {
+    const M = c.map;
+    const pre = M.cols.filter((x) => x.prereq).length;
+    return `${brief(M.advice.length ? esc(M.advice[0].text) : 'The class is solid on every foundation for this unit. Go straight into today’s lesson.')}
+      <div class="card"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><div><h2 style="margin:0">Run a live check</h2><p class="small muted" style="margin:4px 0 0">Warm-up: 4 questions on the earlier-grade ideas this unit needs. Exit ticket: re-checks the weakest ones after your mini-lesson.</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="check" data-class="${esc(c.id)}" data-kind="warmup">${icon('bolt')} Launch warm-up</button><button class="btn ghost" data-act="check" data-class="${esc(c.id)}" data-kind="exit">${icon('check')} Exit ticket</button></div></div>
+        ${M.checks.length ? `<div class="list section">${M.checks.slice().reverse().map((k) => `<div class="row"><div class="main"><b>${k.kind === 'exit' ? 'Exit ticket' : 'Warm-up'}</b> <span class="tiny muted">${ago(k.at)}</span><div class="small muted">${esc(k.concepts.join(' · '))}</div></div><div style="text-align:right"><b>${k.correctPct ?? '–'}%</b><div class="tiny muted">${k.responded}/${k.of} answered</div></div></div>`).join('')}</div>` : ''}</div>
+      ${M.advice.length ? `<div class="card section"><h2><span>${icon('spark')} Orbit AI recommends</span></h2><div class="list">${M.advice.map((a) => { const s = M.summary.find((x) => x.id === a.conceptId); return `<div class="row" style="align-items:flex-start"><div class="main">${pill(a.kind === 'mini' ? 'high' : 'watch', a.kind === 'mini' ? 'Whole class' : 'Small group')}<div class="small" style="margin-top:6px">${esc(a.text)}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${s.lessonId ? `<a class="btn ghost sm" href="#/foundation/${esc(s.lessonId)}">Open lesson</a>` : ''}<button class="btn sm" data-act="assign" data-class="${esc(c.id)}" data-concept="${esc(a.conceptId)}">Send to ${s.gap}</button></div></div>`; }).join('')}</div></div>` : ''}
+      <div class="card section tablewrap"><h2>Class heatmap <span class="tiny muted">mastery % per student</span></h2>
+        <table class="heat"><thead><tr><th>Student</th>${M.cols.map((x, i) => `<th class="${i === pre ? 'split' : ''}"><div>${esc(x.name)}</div><span>${esc(x.gradeLabel)}</span></th>`).join('')}</tr>
+          <tr class="sum"><td class="tiny muted">Class gap</td>${M.summary.map((s, i) => `<td class="${i === pre ? 'split' : ''}"><b style="color:${s.gapPct >= 35 ? 'var(--high)' : s.gapPct >= 20 ? 'var(--watch)' : 'var(--ok)'}">${s.gapPct}%</b></td>`).join('')}</tr></thead>
+        <tbody>${M.rows.map((r) => `<tr><td><b>${esc(r.name)}</b></td>${r.m.map((v, i) => `<td class="${i === pre ? 'split' : ''}"><span class="cell" style="background:${mColor(v, 0.22)};color:${mColor(v)};border-color:${mColor(v, 0.45)}">${v ?? '–'}</span></td>`).join('')}</tr>`).join('')}</tbody></table>
+        <p class="tiny muted" style="margin-top:10px">Left of the line: earlier-grade foundations. Right: this unit. Under 60% is a gap.</p></div>`;
+  }
+
+  // principal: learning gaps
+  function gapsPage() {
+    const G = S.gaps;
+    const r = G.roots[0];
+    return `<div class="hero-greet"><div><span class="ai-chip">${icon('ladder')} School learning gaps</span><h1 style="margin-top:10px">Where Grade 10 is getting stuck</h1><p class="muted">${G.students} students across ${G.byClass.length} classes · updated with every warm-up and quiz</p></div></div>
+      ${r ? brief(`<b>${r.gapPct}%</b> of Grade 10 is struggling with ${esc(r.concept)}, but the real gap starts in <b>${esc(r.rootGrade)}: ${esc(r.root)}</b> (${r.rootGap}% gap). A short school-wide refresher on ${esc(r.root)} fixes both.`) : ''}
+      <div class="grid g2"><div class="card"><h2>Foundation gaps by grade</h2><div class="list">${G.concepts.filter((c) => c.grade < 10).sort((a, b) => b.gapPct - a.gapPct).map((c) => gapRow(c.name, c.gradeLabel + ' · ' + cap(c.branch), c.gapPct)).join('')}</div></div>
+        <div class="card"><h2>This year's units</h2><div class="list">${G.concepts.filter((c) => c.grade === 10).sort((a, b) => b.gapPct - a.gapPct).map((c) => gapRow(c.name, cap(c.branch), c.gapPct)).join('')}</div></div></div>
+      <div class="card section tablewrap"><h2>By class</h2>${G.byClass.map((k) => `<h3 style="margin-top:14px">${esc(k.name)}</h3><div class="heatrow">${k.cells.map((x) => `<div class="hcell" style="background:${gColor(x.gapPct, 0.2)};border-color:${gColor(x.gapPct, 0.5)}"><b style="color:${gColor(x.gapPct)}">${x.gapPct}%</b><span>${esc(x.name)}</span><span class="tiny muted">${esc(x.gradeLabel)}</span></div>`).join('')}</div>`).join('')}<p class="tiny muted" style="margin-top:12px">Share of students below 60% mastery. Names stay with teachers; this view shows totals only.</p></div>`;
+  }
+  function gapRow(name, sub, g) { return `<div class="row"><div class="main" style="flex:1"><b>${esc(name)}</b> <span class="tiny muted">${esc(sub)}</span><div class="bar" style="margin-top:7px"><i style="width:${Math.max(3, g)}%;background:${gColor(g)}"></i></div></div><b style="min-width:44px;text-align:right;color:${gColor(g)}">${g}%</b></div>`; }
+
+  // ---------- board ----------
+  function boardHome() {
+    const B = S.board, T = B.totals;
+    const cols = [['enrollment', 'Students', (v) => v.toLocaleString(), null], ['attendance', 'Attendance', (v) => v + '%', (v) => v >= 94 ? 'ok' : v >= 92 ? 'watch' : 'high'], ['atRisk', 'At risk', (v) => v + '%', (v) => v <= 9 ? 'ok' : v <= 13 ? 'watch' : 'high'], ['responseHrs', 'Alert → family', (v) => v + 'h', (v) => v <= 20 ? 'ok' : v <= 30 ? 'watch' : 'high'], ['followThrough', 'Meetings held', (v) => v + '%', (v) => v >= 80 ? 'ok' : v >= 65 ? 'watch' : 'high'], ['adoption', 'Recap use', (v) => v + '%', (v) => v >= 80 ? 'ok' : v >= 60 ? 'watch' : 'high']];
+    return `<div class="hero-greet"><div><span class="ai-chip">${icon('class')} District view</span><h1 style="margin-top:10px">${esc(B.name)}</h1><p class="muted">${T.schools} schools · ${T.students.toLocaleString()} students · ${esc(S.me.name)}, ${esc(S.me.title || '')}</p></div><a class="btn" href="#/review">${icon('book')} Plan review season</a></div>
+      ${brief(`${B.insights.length} things need the board's attention this week. The biggest: <b>${esc(B.insights[0].title)}</b>.`)}
+      <div class="grid g4"><div class="card stat"><div class="l">Attendance</div><div class="v">${T.attendance}%</div></div><div class="card stat"><div class="l">Students at risk</div><div class="v" style="color:var(--watch)">${T.atRisk}%</div></div><div class="card stat"><div class="l">Median alert → family</div><div class="v">${T.medianResponse}h</div></div><div class="card stat"><div class="l">Alerts → meetings held</div><div class="v">${T.followThrough}%</div></div></div>
+      <div class="card section"><h2><span>${icon('alert')} Bottlenecks & pain points</span><span class="ai-chip">Orbit AI</span></h2><div class="grid g2">${B.insights.map((i) => `<div class="insight ${i.level}"><b>${esc(i.title)}</b><p class="small">${esc(i.body)}</p><div style="display:flex;gap:8px;flex-wrap:wrap">${i.action ? `<a class="btn sm" href="#/review?exam=${esc(i.action.exam)}">Send review pack</a>` : ''}${i.school ? `<a class="btn ghost sm" href="#/school/${esc(i.school)}">Open school</a>` : ''}</div></div>`).join('')}</div></div>
+      <div class="card section tablewrap"><h2>Schools</h2><table><thead><tr><th>School</th>${cols.map((c) => `<th>${c[1]}</th>`).join('')}<th>Test readiness</th></tr></thead><tbody>
+        ${B.schools.map((s) => `<tr><td><a href="#/school/${esc(s.id)}"><b>${esc(s.name)}</b></a>${s.live ? ' <span class="pill ok">live demo</span>' : ''}<div class="tiny muted">${s.type === 'elementary' ? 'Elementary · K–8' : 'Secondary · 9–12'}</div></td>${cols.map(([k, , f, rate]) => `<td>${rate ? `<span class="pill ${rate(s[k])}">${f(s[k])}</span>` : f(s[k])}</td>`).join('')}<td>${Object.entries(s.readiness).map(([e, v]) => `<div class="tiny">${esc(B.exams.find((x) => x.id === e).short)} <b style="color:${mColor(v)}">${v}%</b></div>`).join('')}</td></tr>`).join('')}</tbody></table></div>
+      <div class="card section tablewrap"><h2>Foundation gaps across the board <span class="tiny muted">% of students below 60% mastery</span></h2><table class="heat"><thead><tr><th>School</th>${B.concepts.map((c) => `<th><div>${esc(c.name)}</div><span>${esc(c.gradeLabel)}</span></th>`).join('')}</tr></thead><tbody>
+        ${B.schools.map((s) => `<tr><td><b>${esc(s.name.replace(/ (Public|Secondary) School| Collegiate/, ''))}</b></td>${B.concepts.map((c) => { const g = s.gaps[c.id]; return `<td>${g == null ? '<span class="tiny muted">–</span>' : `<span class="cell" style="background:${gColor(g, 0.2)};color:${gColor(g)};border-color:${gColor(g, 0.45)}">${g}</span>`}</td>`; }).join('')}</tr>`).join('')}</tbody></table>
+        <p class="tiny muted" style="margin-top:10px">${icon('check')} Privacy: the board sees totals only, never student names. Groups smaller than 10 students are hidden. Data stays in Canada.</p></div>`;
+  }
+  function reviewPage(q) {
+    const B = S.board; const ex = B.exams.find((e) => e.id === q.exam) || B.exams[1];
+    const list = B.schools.filter((s) => s.type === ex.type).sort((a, b) => a.readiness[ex.id] - b.readiness[ex.id]);
+    const sent = (sid) => B.packs.find((p) => p.schoolId === sid && p.exam === ex.id);
+    return `<div class="hero-greet"><div><span class="ai-chip">${icon('book')} Review planner</span><h1 style="margin-top:10px">Get ahead of test season</h1><p class="muted">Readiness is predicted from each school's foundation gaps. Send targeted review packs where they'll matter most.</p></div></div>
+      <div class="chips" style="margin-bottom:16px">${B.exams.map((e) => `<a class="chip ${e.id === ex.id ? 'on' : ''}" href="#/review?exam=${e.id}">${esc(e.name)}</a>`).join('')}</div>
+      ${brief(`For <b>${esc(ex.name)}</b>, ${(() => { const n = list.filter((s) => s.readiness[ex.id] < 75).length; return `${n} of ${list.length} schools ${n === 1 ? 'is' : 'are'} below 75% readiness`; })()}. The shared weak spot is <b>${esc(weakest(list, ex).name)}</b>, so one pack on that covers most of the gap.`, '', '')}
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">${list.length} schools</h2><button class="btn" data-act="pack" data-school="all" data-exam="${esc(ex.id)}">${icon('mail')} Send to all ${list.length} schools</button></div>
+        <div class="list section">${list.map((s) => { const r = s.readiness[ex.id]; const top = ex.concepts.map((cid) => ({ cid, g: s.gaps[cid] })).filter((x) => x.g != null).sort((a, b) => b.g - a.g).slice(0, 2); return `<div class="row"><div class="main" style="flex:1"><a href="#/school/${esc(s.id)}"><b>${esc(s.name)}</b></a><div class="small muted">Biggest gaps: ${top.map((t) => `${esc(B.concepts.find((c) => c.id === t.cid).name)} ${t.g}%`).join(' · ')}</div><div class="bar" style="margin-top:8px"><i style="width:${r}%;background:${mColor(r)}"></i></div></div><div style="min-width:70px;text-align:right"><b style="font-size:20px;color:${mColor(r)}">${r}%</b><div class="tiny muted">ready</div></div>${sent(s.id) ? `<span class="pill ok">Pack sent ${ago(sent(s.id).at)}</span>` : `<button class="btn ghost sm" data-act="pack" data-school="${esc(s.id)}" data-exam="${esc(ex.id)}">Send pack</button>`}</div>`; }).join('')}</div></div>`;
+  }
+  function weakest(list, ex) { const B = S.board; return ex.concepts.map((cid) => ({ cid, g: list.reduce((n, s) => n + (s.gaps[cid] || 0), 0) })).sort((a, b) => b.g - a.g).map((x) => B.concepts.find((c) => c.id === x.cid))[0]; }
+  function schoolPage(id) {
+    const B = S.board; const s = B.schools.find((x) => x.id === id);
+    if (!s) return '<div class="card">School not found.</div>';
+    const F = s.funnel; const steps = [['Alerts raised', F.alerts], ['Family contacted', F.contacted], ['Meeting booked', F.meetings], ['Meeting held', F.held]];
+    return `<a href="#/home" class="small">← Board overview</a><div class="hero-greet" style="margin-top:8px"><div><h1>${esc(s.name)}</h1><p class="muted">${s.type === 'elementary' ? 'Elementary · K–8' : 'Secondary · 9–12'} · ${s.enrollment.toLocaleString()} students</p></div></div>
+      <div class="grid g4"><div class="card stat"><div class="l">Attendance</div><div class="v">${s.attendance}%</div></div><div class="card stat"><div class="l">At risk</div><div class="v">${s.atRisk}%</div></div><div class="card stat"><div class="l">Alert → family</div><div class="v">${s.responseHrs}h</div></div><div class="card stat"><div class="l">Recap use</div><div class="v">${s.adoption}%</div></div></div>
+      <div class="grid g2 section"><div class="card"><h2>Intervention pipeline <span class="tiny muted">this term</span></h2>${steps.map(([l, v], i) => `<div class="funnel"><span class="small">${l}</span><div class="bar"><i style="width:${Math.round((v / (F.alerts || 1)) * 100)}%"></i></div><b>${v}</b>${i ? `<span class="tiny muted">${Math.round((v / (steps[i - 1][1] || 1)) * 100)}%</span>` : '<span></span>'}</div>`).join('')}
+        <p class="small muted" style="margin-top:12px">${s.responseHrs > 40 ? `The drop between “alert” and “family contacted” is the bottleneck here. Families wait ${s.responseHrs} hours on average.` : 'Alerts are reaching families quickly. Keep an eye on meeting follow-through.'}</p></div>
+        <div class="card"><h2>Foundation gaps</h2><div class="list">${B.concepts.filter((c) => s.gaps[c.id] != null).sort((a, b) => s.gaps[b.id] - s.gaps[a.id]).map((c) => gapRow(c.name, c.gradeLabel, s.gaps[c.id])).join('')}</div></div></div>
+      <div class="card section"><h2>Test readiness</h2><div class="grid g3">${Object.entries(s.readiness).map(([e, v]) => `<div><div class="small muted">${esc(B.exams.find((x) => x.id === e).name)}</div><div class="v" style="font-family:var(--display);font-size:30px;font-weight:700;color:${mColor(v)}">${v}%</div><a class="small" href="#/review?exam=${esc(e)}">Plan review →</a></div>`).join('')}</div></div>`;
   }
 
   // ---------- admin ----------
@@ -665,6 +824,10 @@
       else if (act === 'nav') { navOpen = !navOpen; render(); }
       else if (act === 'bell') { panelOpen = !panelOpen; render(); if (panelOpen && S.notifications.some((n) => !n.read)) { await api('/api/notifications/read', {}); S.notifications.forEach((n) => (n.read = true)); } }
       else if (act === 'listen') { e.preventDefault(); e.stopPropagation(); speak(t.dataset.text); }
+      else if (act === 'star') { starSel = t.dataset.id; render(); }
+      else if (act === 'check') { t.disabled = true; const r = await api('/api/check', { classId: t.dataset.class, kind: t.dataset.kind }); toast(`${t.dataset.kind === 'exit' ? 'Exit ticket' : 'Warm-up'} sent. Class answered ${r.correctPct}% correctly so far.`); await refresh(); }
+      else if (act === 'assign') { t.disabled = true; const r = await api('/api/foundation/assign', { classId: t.dataset.class, conceptId: t.dataset.concept }); toast(`Foundation lesson sent to ${r.sent} student${r.sent === 1 ? '' : 's'}.`); await refresh(); }
+      else if (act === 'pack') { t.disabled = true; const r = await api('/api/board/pack', { schoolId: t.dataset.school, exam: t.dataset.exam }); toast(`Review pack sent to ${r.sent} school${r.sent === 1 ? '' : 's'}. Principals were notified.`); await refresh(); }
       else if (act === 'flip') t.classList.toggle('flip');
       else if (act === 'print') window.print();
       else if (act === 'answer') answer(t);
@@ -701,6 +864,7 @@
   });
   function confirmBox() { return window.confirm('Reset all demo data? This signs everyone out.'); }
 
+  document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('g.star')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   document.addEventListener('input', (e) => {
     const sel = e.target.dataset && e.target.dataset.filter;
     if (!sel) return;
@@ -772,7 +936,8 @@
     if (done.length === all.length) {
       const score = [...all].filter((x) => x.dataset.ok === '1').length;
       set.querySelector('.qresult').innerHTML = `<div class="banner ${score / all.length >= 0.7 ? 'ok' : 'watch'}"><b>You got ${score} of ${all.length}.</b> ${score === all.length ? 'Perfect score!' : 'Review the cards above and try again later.'}</div>`;
-      if (S.me.role === 'student') api('/api/quiz', { label: set.dataset.label, score, total: all.length }).catch(() => {});
+      if (S.me.role === 'student' && set.dataset.check) { api('/api/check/answer', { id: set.dataset.check, results: [...all].map((x) => x.dataset.ok === '1') }).then(() => { set.querySelector('.qresult').innerHTML += '<div style="margin-top:10px"><a class="btn" href="#/map">See your map light up →</a></div>'; api('/api/bootstrap').then((d) => { S = d; }); }).catch(() => {}); }
+      else if (S.me.role === 'student') api('/api/quiz', { label: set.dataset.label, score, total: all.length }).then(() => { if (/^Foundation: /.test(set.dataset.label)) api('/api/bootstrap').then((d) => { S = d; }); }).catch(() => {});
     }
   }
 

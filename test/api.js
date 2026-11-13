@@ -76,6 +76,27 @@ server.listen(0, async () => {
     ok((await call('admin', 'POST', '/api/settings', { level: 'university' })).status === 200, 'level');
     ok((await call('admin', 'GET', '/api/bootstrap')).body.labels.guardian === 'Advisor', 'labels change');
     ok((await call('admin', 'POST', '/api/risk/run', {})).status === 200, 'run check');
+    // knowledge map, live checks, board
+    ok(s.map.length > 15 && s.map.some((c) => c.level === 'gap'), 'student map with dark stars');
+    const cmap = (await call('teacher', 'GET', '/api/bootstrap')).body.classes.find((c) => c.id === 'bio').map;
+    ok(cmap.cols.some((c) => c.prereq) && cmap.rows.length === 10, 'class map');
+    let ck = await call('teacher', 'POST', '/api/check', { classId: 'bio', kind: 'warmup' });
+    ok(ck.status === 200 && ck.body.perConcept.length >= 2, 'warm-up ran ' + JSON.stringify(ck.body));
+    const s2 = (await call('student', 'GET', '/api/bootstrap')).body;
+    ok(s2.check && s2.check.id === ck.body.id, 'student sees live warm-up');
+    ok((await call('student', 'POST', '/api/check/answer', { id: ck.body.id, results: s2.check.questions.map(() => true) })).status === 200, 'student answers');
+    ok(!(await call('student', 'GET', '/api/bootstrap')).body.check, 'check closed for student');
+    ok((await call('teacher', 'POST', '/api/check', { classId: 'bio', kind: 'exit' })).status === 200, 'exit ticket');
+    const as = await call('teacher', 'POST', '/api/foundation/assign', { classId: 'bio', conceptId: 's-react' });
+    ok(as.status === 200 && as.body.sent >= 0, 'assign foundation');
+    ok((await call('student', 'POST', '/api/check', { classId: 'bio', kind: 'warmup' })).status === 403, 'student cant launch check');
+    ok((await call('board', 'POST', '/api/login', { demo: 'board' })).status === 200, 'board login');
+    const bd = (await call('board', 'GET', '/api/bootstrap')).body.board;
+    ok(bd.schools.length === 8 && bd.insights.length >= 3 && bd.schools.every((x) => !x.students), 'board view aggregated');
+    ok((await call('board', 'POST', '/api/board/pack', { schoolId: 'all', exam: 'g9' })).body.sent === 4, 'packs to secondary');
+    ok((await call('admin', 'GET', '/api/bootstrap')).body.notifications.some((n) => n.type === 'board'), 'principal notified of pack');
+    ok((await call('admin', 'POST', '/api/board/pack', { schoolId: 'all', exam: 'g9' })).status === 403, 'admin cant send board packs');
+    ok((await call('admin', 'GET', '/api/bootstrap')).body.gaps.roots.length >= 1, 'school root causes');
     console.log('PASS', pass);
   } catch (e) { console.error('FAIL after', pass, e.message); process.exitCode = 1; }
   server.close(); process.exit();

@@ -8,6 +8,7 @@ const { seed, id } = require('./seed');
 const risk = require('./risk');
 const ai = require('./ai');
 const levels = require('./levels');
+const insights = require('./insights');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -20,7 +21,7 @@ function load() {
   try {
     db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     // Re-seed demos older than 3 days so dates stay fresh.
-    if (!db.seededAt || Date.now() - db.seededAt > 3 * 86400000) throw new Error('stale');
+    if (!db.seededAt || Date.now() - db.seededAt > 3 * 86400000 || !db.mastery || !db.board) throw new Error('stale');
   } catch {
     db = seed();
     save();
@@ -107,8 +108,13 @@ function studentView(sid) {
     rc.foundations = levels.foundationsFor(db, rc).map((f) => f.id);
     for (const fid of rc.foundations) if (!foundations[fid]) foundations[fid] = foundationLesson(fid);
   }
+  const me = user(sid);
+  for (const fid of insights.conceptLessonIds(db, me.grade)) if (!foundations[fid]) { const l = foundationLesson(fid); if (l && l.grade < me.grade) foundations[fid] = l; }
   const r = risk.assess(db, sid);
+  const openCheck = [...(db.checks || [])].reverse().find((k) => ids.includes(k.classId) && Date.now() - k.at < 86400000 && !k.responses[sid]);
   return {
+    map: insights.studentMap(db, sid),
+    check: openCheck ? { id: openCheck.id, classId: openCheck.classId, kind: openCheck.kind, questions: openCheck.questions.map((q) => ({ question: q.question, options: q.options, answer: q.answer })) } : null,
     student: pub(user(sid)), classes: myClasses, assignments, recaps, foundations, risk: r, plan: risk.actionPlan(r),
     shoutouts: db.shoutouts.filter((x) => ids.includes(x.classId)).map((x) => ({ ...x, studentName: user(x.studentId).name })).sort((a, b) => b.createdAt - a.createdAt),
     quizAttempts: db.quizAttempts.filter((q) => q.studentId === sid),
@@ -161,10 +167,11 @@ function bootstrap(u) {
   if (u.role === 'teacher') {
     const mine = teacherClasses(u);
     classIds = mine.map((c) => c.id);
-    base.classes = mine.map((c) => ({ ...c, roster: rosterFor(c) }));
+    base.classes = mine.map((c) => ({ ...c, roster: rosterFor(c), map: insights.classMap(db, c) }));
     base.recaps = db.recaps.filter((r) => classIds.includes(r.classId)).sort((a, b) => b.date.localeCompare(a.date));
     base.assignments = db.assignments.filter((a) => classIds.includes(a.classId)).map((a) => ({ ...a, submissions: db.submissions.filter((s) => s.assignmentId === a.id) })).sort((a, b) => b.due.localeCompare(a.due));
     base.shoutouts = db.shoutouts.filter((x) => classIds.includes(x.classId)).map((x) => ({ ...x, studentName: user(x.studentId).name })).sort((a, b) => b.createdAt - a.createdAt);
+    base.foundations = Object.fromEntries(insights.conceptLessonIds(db, 99).map((fid) => [fid, foundationLesson(fid)]).filter(([, l]) => l));
     base.students = Object.fromEntries([...new Set(classIds.flatMap((c) => db.enrollments[c]))].map((sid) => [sid, user(sid).name]));
   }
   if (u.role === 'admin') {
@@ -181,7 +188,9 @@ function bootstrap(u) {
     const avgs = assessed.map((a) => a.overall).filter((x) => x != null);
     base.trend = db.trend.slice(0, -1).concat([{ month: db.trend[db.trend.length - 1].month, avg: Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length) }]);
     base.outbox = db.outbox.slice(0, 50);
+    base.gaps = insights.schoolGaps(db);
   }
+  if (u.role === 'board') { base.board = insights.boardView(db); base.me.title = u.title; }
   base.announcements = db.announcements.filter((a) => a.scope === 'school' || classIds.includes(a.scope)).map((a) => ({ ...a, author: (user(a.authorId) || {}).name })).sort((a, b) => (b.urgent - a.urgent) || b.createdAt - a.createdAt);
   base.meetings = db.meetings.filter((m) => m.requesterId === u.id || m.teacherId === u.id || (u.role === 'parent' && m.studentId === u.childId) || u.role === 'admin')
     .map((m) => ({ ...m, requester: user(m.requesterId).name, teacher: user(m.teacherId).name, student: user(m.studentId).name })).sort((a, b) => b.createdAt - a.createdAt);
@@ -353,7 +362,46 @@ const routes = {
   'POST /api/quiz': (b, u) => {
     if (u.role !== 'student') throw httpErr(403, 'Students only');
     db.quizAttempts.push({ studentId: u.id, label: String(b.label || 'Quiz').slice(0, 80), score: Number(b.score) || 0, total: Number(b.total) || 0, at: Date.now() });
+    const lbl = String(b.label || '');
+    if (lbl.startsWith('Foundation: ') && Number(b.total)) {
+      const c = insights.conceptForLessonTitle(db, lbl.slice(12));
+      if (c) { const m = db.mastery[u.id] || (db.mastery[u.id] = {}); m[c.id] = Math.max(m[c.id] || 0, Math.round(55 + 42 * (Number(b.score) / Number(b.total)))); }
+    }
     return { ok: true };
+  },
+  'POST /api/check': (b, u) => {
+    const c = cls(b.classId);
+    if (!c || u.role !== 'teacher' || !teaches(u, c)) throw httpErr(403, 'Not your class');
+    const live = db.users.filter((x) => x.email === 'student@orbitlearn.demo').map((x) => x.id);
+    const k = insights.runCheck(db, c, b.kind === 'exit' ? 'exit' : 'warmup', foundationLesson, live);
+    for (const sid of db.enrollments[c.id]) if (!k.responses[sid]) notify(sid, 'check', `${k.kind === 'exit' ? 'Exit ticket' : 'Warm-up'} is live in ${c.subject}`, `${k.questions.length} quick questions. Takes 2 minutes.`, `#/check/${k.id}`);
+    return { ok: true, id: k.id, correctPct: k.correctPct, perConcept: k.perConcept };
+  },
+  'POST /api/check/answer': (b, u) => {
+    const k = (db.checks || []).find((x) => x.id === b.id);
+    if (!k || u.role !== 'student' || !(db.enrollments[k.classId] || []).includes(u.id)) throw httpErr(404, 'Check not found');
+    if (k.responses[u.id]) return { ok: true };
+    insights.applyAnswers(db, u.id, k, (b.results || []).slice(0, k.questions.length).map(Boolean), 0);
+    insights.scoreCheck(k);
+    return { ok: true };
+  },
+  'POST /api/foundation/assign': (b, u) => {
+    const c = cls(b.classId);
+    if (!c || u.role !== 'teacher' || !teaches(u, c)) throw httpErr(403, 'Not your class');
+    const con = insights.C[b.conceptId]; const lid = con && insights.lessonId(db, con);
+    if (!lid) throw httpErr(400, 'Unknown concept');
+    const who = db.enrollments[c.id].filter((sid) => ((db.mastery[sid] || {})[con.id] ?? 100) < 60);
+    for (const sid of who) notify(sid, 'foundation', `Quick refresher: ${con.name}`, `${u.name} sent you a ${levels.gradeLabel(con.grade)} lesson that today's ${c.subject} builds on.`, `#/foundation/${lid}`);
+    return { ok: true, sent: who.length };
+  },
+  'POST /api/board/pack': (b, u) => {
+    if (u.role !== 'board') throw httpErr(403, 'Board only');
+    const exam = insights.boardView(db).exams.find((e) => e.id === b.exam);
+    const ids = b.schoolId === 'all' ? insights.boardView(db).schools.filter((s) => exam && s.type === exam.type).map((s) => s.id) : [b.schoolId];
+    if (!exam) throw httpErr(400, 'Unknown exam');
+    for (const sid of ids) db.board.packs.unshift({ id: id(), schoolId: sid, exam: exam.id, at: Date.now() });
+    if (ids.includes('northview')) for (const a of db.users.filter((x) => x.role === 'admin')) { notify(a.id, 'board', `Review pack from the board: ${exam.short}`, `${u.name} sent a targeted ${exam.short} review pack based on your school's foundation gaps.`, '#/gaps'); email(a.id, `Board review pack: ${exam.name}`, `Hi ${a.name.split(' ')[1] || a.name},\n\nThe board has sent Northview a ${exam.name} review pack, built from your school's foundation gaps in OrbitLearn. Teachers can assign it from the Knowledge map tab of each class.\n\n– ${u.name}, ${u.title}`); }
+    return { ok: true, sent: ids.length };
   },
   'POST /api/notifications/read': (b, u) => {
     db.notifications.forEach((n) => { if (n.userId === u.id) n.read = true; });

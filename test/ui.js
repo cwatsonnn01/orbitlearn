@@ -33,11 +33,13 @@ server.listen(0, async () => {
       await p.goto(base + '/#/vault'); await p.click('.vrow'); await p.waitForSelector('.flash'); await shot(p, 'student-recap');
       if (await p.$('.fnd')) { await p.click('.fnd'); await p.waitForSelector('.ladder'); await shot(p, 'student-foundation'); }
       await p.goto(base + '/#/exam/bio'); await shot(p, 'student-exam');
+      await p.goto(base + '/#/map'); await p.waitForSelector('.starmap'); await shot(p, 'student-map');
       await p.goto(base + '/#/assignments'); await p.click('button[data-act=submit]'); await p.waitForTimeout(300); await shot(p, 'student-assignments');
     });
     await as('teacher', async (p) => {
       await shot(p, 'teacher-home');
       await p.click('button[data-act=notify]'); await p.waitForTimeout(400);
+      await p.goto(base + '/#/class/bio?tab=map'); await shot(p, 'teacher-map'); await p.click('button[data-act=check][data-kind=warmup]'); await p.waitForTimeout(500); await p.click('button[data-act=assign]'); await p.waitForTimeout(500); await shot(p, 'teacher-map-after');
       await p.goto(base + '/#/class/bio?tab=roster'); await shot(p, 'teacher-roster');
       await p.goto(base + '/#/class/bio?tab=recaps'); await p.click('button[data-act=sample]'); await p.click('form[data-form=generate] button:not([type=button])'); await p.waitForSelector('form[data-form=publish]');
       await shot(p, 'teacher-recap-draft');
@@ -60,6 +62,10 @@ server.listen(0, async () => {
     });
     await as('kinder', async (p) => { await shot(p, 'kinder-home'); await p.click('.k-card'); await p.waitForSelector('.flash'); await shot(p, 'kinder-recap'); await p.goto(base + '/#/assistant'); await shot(p, 'kinder-assistant'); });
     await as('uni', async (p) => { await shot(p, 'uni-home'); await p.goto(base + '/#/exam/bio201'); await shot(p, 'uni-exam'); });
+    await as('student', async (p) => { await p.waitForSelector('.banner.live'); await shot(p, 'student-live'); await p.click('.banner.live .btn'); await p.waitForSelector('.qz'); for (const q of await p.$$('.qz')) await (await q.$('.opt')).click(); await p.waitForTimeout(500); await shot(p, 'student-check-done'); });
+    await as('admin', async (p) => { await p.goto(base + '/#/gaps'); await shot(p, 'admin-gaps'); });
+    await as('board', async (p) => { await shot(p, 'board-home'); await p.goto(base + '/#/review?exam=g9'); await p.click('button[data-act=pack][data-school=westbrook]'); await p.waitForTimeout(400); await shot(p, 'board-review'); await p.goto(base + '/#/school/westbrook'); await shot(p, 'board-school'); });
+    await as('board', async (p) => { await shot(p, 'mobile-board'); }, true);
     await as('parent', async (p) => { await shot(p, 'mobile-parent'); }, true);
     await as('kinder', async (p) => { await shot(p, 'mobile-kinder'); }, true);
     console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'UI OK, no errors');
