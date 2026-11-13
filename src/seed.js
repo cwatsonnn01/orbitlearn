@@ -162,7 +162,7 @@ function seed(level = 'high') {
     { id: id(), requesterId: parents[3].id, teacherId: rivera.id, studentId: students[3].id, reason: 'Sofia has been late a few times. Can we talk about mornings?', slot: new Date(Date.now() + 2 * DAY).toLocaleDateString('en', { month: 'short', day: 'numeric' }) + ', 3:30 PM', status: 'requested', createdAt: now - 6 * 3600000 },
   ];
 
-  return {
+  return require('./levels').addLevels({
     school: { name: 'Northview Secondary School', level, district: 'Peel District (demo)' },
     users, classes, enrollments, attendance, assignments, submissions, recaps,
     announcements, shoutouts, community, meetings,
@@ -170,7 +170,7 @@ function seed(level = 'high') {
     trend: [72, 73, 71, 74, 75, 74, 76].map((v, i) => ({ month: new Date(now - (6 - i) * 30 * DAY).toLocaleString('en', { month: 'short' }), avg: v })),
     seededAt: now,
     _ids: { tyler: tyler.id },
-  };
+  });
 }
 
 module.exports = { seed, id, daysAgo, daysAhead };

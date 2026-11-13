@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { seed, id } = require('./seed');
 const risk = require('./risk');
 const ai = require('./ai');
+const levels = require('./levels');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -42,20 +43,23 @@ const sessions = new Map(); // token -> userId
 // ---------- helpers ----------
 const user = (uid) => db.users.find((u) => u.id === uid);
 const cls = (cid) => db.classes.find((c) => c.id === cid);
-const pub = (u) => u && ({ id: u.id, name: u.name, role: u.role, email: u.email, childId: u.childId, grade: u.grade });
+const pub = (u) => u && ({ id: u.id, name: u.name, role: u.role, email: u.email, childId: u.childId, grade: u.grade, gradeLabel: u.grade != null ? levels.gradeLabel(u.grade) : undefined });
 const teaches = (u, c) => c.teacherId === u.id || c.coTeacherId === u.id;
 const studentClasses = (sid) => db.classes.filter((c) => (db.enrollments[c.id] || []).includes(sid));
 const teacherClasses = (u) => db.classes.filter((c) => teaches(u, c));
 const parentsOf = (sid) => db.users.filter((u) => u.role === 'parent' && u.childId === sid);
-const labels = () => {
-  const lvl = db.school.level;
+const labels = (lvl = db.school.level) => {
+  if (lvl === 'kinder') lvl = 'kinder';
   return {
     level: lvl,
+    band: lvl,
+    theme: lvl === 'kinder' || lvl === 'elementary' ? 'kinder' : lvl === 'university' ? 'pro' : 'orbit',
     guardian: lvl === 'university' ? 'Advisor' : 'Parent',
     teacher: lvl === 'university' ? 'Professor' : 'Teacher',
     recaps: true,
-    recapDetail: lvl === 'elementary' ? 'simple' : lvl === 'university' ? 'full' : 'standard',
-    badges: lvl === 'elementary' || lvl === 'middle',
+    recapDetail: lvl === 'kinder' || lvl === 'elementary' ? 'simple' : lvl === 'university' ? 'full' : 'standard',
+    badges: lvl === 'kinder' || lvl === 'elementary' || lvl === 'middle',
+    foundations: lvl !== 'kinder',
     community: lvl === 'university' ? 'Study groups' : 'Parent hub',
   };
 };
@@ -98,13 +102,31 @@ function studentView(sid) {
     return { ...a, state, score: s ? s.score : null };
   }).sort((a, b) => a.due.localeCompare(b.due));
   const recaps = db.recaps.filter((r) => ids.includes(r.classId) && r.status === 'published').map((r) => ({ ...r, notes: undefined, subject: cls(r.classId).subject, className: cls(r.classId).name })).sort((a, b) => b.date.localeCompare(a.date));
+  const foundations = {};
+  for (const rc of recaps) {
+    rc.foundations = levels.foundationsFor(db, rc).map((f) => f.id);
+    for (const fid of rc.foundations) if (!foundations[fid]) foundations[fid] = foundationLesson(fid);
+  }
   const r = risk.assess(db, sid);
   return {
-    student: pub(user(sid)), classes: myClasses, assignments, recaps, risk: r, plan: risk.actionPlan(r),
+    student: pub(user(sid)), classes: myClasses, assignments, recaps, foundations, risk: r, plan: risk.actionPlan(r),
     shoutouts: db.shoutouts.filter((x) => ids.includes(x.classId)).map((x) => ({ ...x, studentName: user(x.studentId).name })).sort((a, b) => b.createdAt - a.createdAt),
     quizAttempts: db.quizAttempts.filter((q) => q.studentId === sid),
     badges: badges(sid, r),
   };
+}
+function foundationLesson(fid) {
+  const lib = (db.library || []).find((l) => l.id === fid);
+  if (lib) return { id: lib.id, gradeLabel: lib.gradeLabel, grade: lib.grade, subject: lib.subject, title: lib.title, summary: lib.summary, keyTerms: lib.keyTerms, flashcards: lib.flashcards, quiz: lib.quiz };
+  const rc = db.recaps.find((x) => x.id === fid);
+  const c = rc && cls(rc.classId);
+  return rc && { id: rc.id, gradeLabel: levels.gradeLabel(c.grade), grade: c.grade, subject: c.subject, title: rc.title, summary: rc.summary, keyTerms: rc.keyTerms, flashcards: rc.flashcards, quiz: rc.quiz };
+}
+function viewerLevel(u) {
+  if (u.role === 'student') return levels.band(u.grade);
+  if (u.role === 'parent') return levels.band(user(u.childId).grade);
+  if (u.role === 'teacher') { const c = teacherClasses(u)[0]; return c ? levels.band(c.grade) : db.school.level; }
+  return db.school.level;
 }
 function badges(sid, r) {
   const out = [];
@@ -125,7 +147,7 @@ function rosterFor(c) {
 
 function bootstrap(u) {
   const base = {
-    me: pub(u), school: db.school, labels: labels(),
+    me: pub(u), school: db.school, labels: labels(viewerLevel(u)),
     notifications: db.notifications.filter((n) => n.userId === u.id).slice(0, 50),
     teachers: db.users.filter((x) => x.role === 'teacher').map(pub),
   };
@@ -223,8 +245,8 @@ const routes = {
     const notes = req(b.notes, 'class notes');
     if (notes.length < 60) throw httpErr(400, 'Add a few more sentences of notes so the assistant has enough to work with.');
     const pool = db.recaps.filter((r) => r.classId === c.id).flatMap((r) => r.keyTerms);
-    const gen = ai.generateRecap({ subject: c.subject, title: req(b.title, 'lesson title'), notes, level: db.school.level }, pool);
-    const r = { id: id(), classId: c.id, date: risk.today(), title: b.title, notes, ...gen, homework: [], status: 'draft', approvedBy: null };
+    const gen = ai.generateRecap({ subject: c.subject, title: req(b.title, 'lesson title'), notes, level: levels.band(c.grade) }, pool);
+    const r = { id: id(), classId: c.id, date: risk.today(), title: b.title, notes, ...gen, homework: [], status: 'draft', approvedBy: null, concepts: levels.guessConcepts(b.title + ' ' + notes) };
     db.recaps.push(r);
     return { ok: true, recap: r };
   },
@@ -339,7 +361,7 @@ const routes = {
   },
   'POST /api/settings': (b, u) => {
     if (u.role !== 'admin') throw httpErr(403, 'Admins only');
-    if (['elementary', 'middle', 'high', 'university'].includes(b.level)) db.school.level = b.level;
+    if (['kinder', 'elementary', 'middle', 'high', 'university'].includes(b.level)) db.school.level = b.level;
     return { ok: true };
   },
   'POST /api/reset': (b, u) => {
@@ -353,7 +375,21 @@ const routes = {
 function studentReply(u, message) {
   const recaps = db.recaps.filter((r) => r.status === 'published' && studentClasses(u.id).some((c) => c.id === r.classId))
     .map((r) => ({ ...r, subject: cls(r.classId).subject, className: cls(r.classId).name }));
-  return ai.answer(message, recaps);
+  const out = ai.answer(message, recaps);
+  // "Explain it simpler": point back to an earlier-grade lesson on the same idea.
+  if (/simpl|easier|basic|don.?t (get|understand)|confus|lost|start from/i.test(message || '')) {
+    const words = (String(message).toLowerCase().match(/[a-z]{4,}/g) || []);
+    const target = (out.recapId && recaps.find((r) => r.id === out.recapId)) ||
+      recaps.find((r) => words.some((w) => r.title.toLowerCase().includes(w) || r.subject.toLowerCase().includes(w))) || recaps[0];
+    const f = target && levels.foundationsFor(db, target)[0];
+    if (f) {
+      const lesson = foundationLesson(f.id);
+      out.text = `Let's build it up from the ground. Before "${target.title}", it helps to know this from ${f.gradeLabel} ${f.subject}: ${lesson.summary.slice(0, 2).join(' ')}`;
+      out.foundation = { id: f.id, title: f.title, gradeLabel: f.gradeLabel, subject: f.subject };
+      out.source = undefined; out.recapId = target.id;
+    }
+  }
+  return out;
 }
 
 function mustTeach(u, classId) {

@@ -2,17 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OrbitLearn · Keep every student in orbit</title>
-<meta name="description" content="OrbitLearn connects students, parents, teachers and schools with proactive alerts, AI class recaps and a lifelong study vault.">
+<meta name="description" content="OrbitLearn is the AI classroom platform for every age, kindergarten to university: proactive alerts, AI class recaps, a lifelong study vault and Foundations that bridge back to earlier lessons.">
+<meta name="theme-color" content="#06071A">
 <link rel="icon" href="/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/app.css">
 </head>
-<body>
-<div id="app" aria-live="polite"><div class="boot">Loading OrbitLearn…</div></div>
+<body class="t-orbit">
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div id="app" aria-live="polite"><div class="boot"><span class="loader"></span>Launching OrbitLearn…</div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="/app.js"></script>
 </body>

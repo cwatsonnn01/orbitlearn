@@ -37,10 +37,51 @@
     bell: '<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 003.4 0"/>', out: '<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
     alert: '<path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/>', menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
     star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>', check: '<path d="M20 6L9 17l-5-5"/>', award: '<circle cx="12" cy="8" r="6"/><path d="M8.2 13.4L7 22l5-3 5 3-1.2-8.6"/>', bolt: '<path d="M13 2L3 14h9l-1 8 10-12h-9z"/>',
+    ear: '<path d="M6 8.5a6 6 0 1112 0c0 3.5-3 4.5-3 7.5a3.5 3.5 0 01-7 0"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-1.5 2-1.5 3"/>', ladder: '<path d="M7 3v18M17 3v18M7 8h10M7 13h10M7 18h10"/>', play: '<path d="M7 4l13 8-13 8z"/>',
     class: '<path d="M2 7l10-4 10 4-10 4z"/><path d="M6 9v5c0 2 3 3.5 6 3.5s6-1.5 6-3.5V9"/>', print: '<path d="M6 9V2h12v7"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v8H6z"/>',
   };
   const icon = (n) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ''}</svg>`;
   const pill = (cls_, text) => `<span class="pill ${esc(cls_)}">${esc(text)}</span>`;
+  let logoN = 0;
+  function logo() {
+    const n = ++logoN;
+    return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lc${n}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2EE6D6"/><stop offset=".55" stop-color="#7C6CFF"/><stop offset="1" stop-color="#FF6FB5"/></linearGradient><radialGradient id="lg${n}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="64" height="64" rx="18" fill="#090B22"/><ellipse cx="32" cy="33" rx="25" ry="9" fill="none" stroke="url(#lc${n})" stroke-width="2.4" opacity=".5" transform="rotate(-24 32 33)"/><circle cx="32" cy="32" r="12" fill="url(#lc${n})"/><circle cx="32" cy="32" r="12" fill="url(#lg${n})"/><path d="M9.6 41.7a25 9 -24 0 0 45-18" fill="none" stroke="url(#lc${n})" stroke-width="2.4" stroke-linecap="round"/><g><circle cx="53.4" cy="22.6" r="3.6" fill="#FFC46B"/><animateTransform attributeName="transform" type="rotate" values="0 32 32;-14 32 32;0 32 32" dur="6s" repeatCount="indefinite"/></g></svg>`;
+  }
+  const brand = () => `<a class="brand" href="#/home">${logo()}<span>Orbit<span class="gtext">Learn</span></span></a>`;
+  const initials = (n) => String(n || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const theme = () => (S && S.labels && S.labels.theme) || 'orbit';
+  const isKid = () => theme() === 'kinder';
+  function setTheme() {
+    const t = 't-' + theme();
+    if (!document.body.classList.contains(t)) { document.body.classList.remove('t-orbit', 't-kinder', 't-pro'); document.body.classList.add(t); }
+    const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t === 't-kinder' ? '#FFF7EC' : t === 't-pro' ? '#0A0B10' : '#06071A';
+  }
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return toast('Read-aloud isn’t available in this browser.');
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.rate = isKid() ? 0.88 : 1; u.pitch = isKid() ? 1.15 : 1;
+    speechSynthesis.speak(u);
+  }
+
+  // starfield: slow twinkle + parallax drift; static when reduced motion is on
+  (function stars() {
+    const cv = document.getElementById('stars'); if (!cv) return;
+    const ctx = cv.getContext('2d'); const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let W, H, pts = [], dpr = Math.min(window.devicePixelRatio || 1, 2), mx = 0, my = 0, shoot = null;
+    function size() { W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; const n = Math.round((innerWidth * innerHeight) / 5200); pts = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, r: (Math.random() * 1.1 + 0.25) * dpr, z: Math.random() * 0.8 + 0.2, t: Math.random() * 6.28, s: Math.random() * 0.02 + 0.004, c: Math.random() < 0.12 ? (Math.random() < 0.5 ? '46,230,214' : '255,111,181') : '220,225,255' })); }
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      for (const p of pts) { p.t += p.s; const a = 0.35 + Math.sin(p.t) * 0.3 * p.z + 0.25 * p.z; const x = (p.x + mx * p.z * 18 * dpr + W) % W, y = (p.y + my * p.z * 18 * dpr + H) % H; ctx.beginPath(); ctx.arc(x, y, p.r, 0, 6.283); ctx.fillStyle = `rgba(${p.c},${a.toFixed(3)})`; ctx.fill(); }
+      if (!still) {
+        if (!shoot && Math.random() < 0.004) shoot = { x: Math.random() * W * 0.7, y: Math.random() * H * 0.4, l: 0 };
+        if (shoot) { shoot.l += 0.025; const x2 = shoot.x + shoot.l * 260 * dpr, y2 = shoot.y + shoot.l * 110 * dpr; const g = ctx.createLinearGradient(shoot.x, shoot.y, x2, y2); g.addColorStop(0, 'rgba(46,230,214,0)'); g.addColorStop(1, `rgba(255,255,255,${Math.max(0, 0.8 - shoot.l * 0.8)})`); ctx.strokeStyle = g; ctx.lineWidth = 1.4 * dpr; ctx.beginPath(); ctx.moveTo(x2 - 90 * dpr, y2 - 38 * dpr); ctx.lineTo(x2, y2); ctx.stroke(); if (shoot.l > 1) shoot = null; }
+        requestAnimationFrame(frame);
+      }
+    }
+    addEventListener('resize', () => { size(); if (still) frame(); });
+    addEventListener('pointermove', (e) => { mx = e.clientX / innerWidth - 0.5; my = e.clientY / innerHeight - 0.5; }, { passive: true });
+    size(); frame();
+  })();
   const subj = (c) => `<span class="subj"><span class="dot" style="background:${esc(c.color || '#888')}"></span>${esc(c.subject || c.name)}</span>`;
 
   // ---------- routing ----------
@@ -54,7 +95,8 @@
 
   function navFor(role) {
     const L = S.labels;
-    if (role === 'student') return [['home', 'Home', 'home'], ['assignments', 'Assignments', 'clip'], ['vault', 'Study Vault', 'book'], ['assistant', 'AI Assistant', 'spark'], ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
+    if (role === 'student' && L.level === 'kinder') return [['home', 'My day', 'home'], ['vault', 'My lessons', 'book'], ['assistant', 'Ask Orbit', 'spark'], ['assignments', 'My jobs', 'star']];
+    if (role === 'student') return [['home', 'Home', 'home'], ['assignments', 'Assignments', 'clip'], ['vault', 'Study Vault', 'book'], ['assistant', 'Orbit AI', 'spark'], ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
     if (role === 'parent') return [['home', 'Home', 'home'], ['assignments', 'Homework', 'clip'], ['vault', 'Class recaps', 'book'], ['meetings', 'Meetings', 'cal'], ['community', L.community, 'users'], ['announcements', 'Announcements', 'mega']];
     if (role === 'teacher') return [['home', 'Home', 'home'], ...S.classes.map((c) => [`class/${c.id}`, c.name, 'class']), ['meetings', 'Meetings', 'cal'], ['announcements', 'Announcements', 'mega']];
     return [['home', 'School overview', 'home'], ['announcements', 'Announcements', 'mega'], ['email', 'Email log', 'mail'], ['meetings', 'Meetings', 'cal'], ['settings', 'Settings', 'gear']];
@@ -62,7 +104,8 @@
 
   // ---------- render ----------
   function render() {
-    if (!S) return renderLogin();
+    if (!S) { setTheme(); return renderLogin(); }
+    setTheme();
     const r = route();
     const key = r.parts[0] || 'home';
     const nav = navFor(S.me.role);
@@ -70,18 +113,19 @@
     const unread = S.notifications.filter((n) => !n.read).length;
     let body;
     try { body = page(key, r); } catch (e) { console.error(e); body = `<div class="card">That page didn't load. <a href="#/home">Go home</a></div>`; }
-    const levelName = { elementary: 'Elementary', middle: 'Middle school', high: 'High school', university: 'University' }[S.school.level];
+    const levelName = { kinder: 'Kindergarten', elementary: 'Elementary', middle: 'Middle school', high: 'High school', university: 'University' }[S.labels.level] || 'School';
+    const roleName = S.me.role === 'parent' ? S.labels.guardian : S.me.role === 'teacher' ? S.labels.teacher : S.me.role === 'student' ? (S.me.gradeLabel || 'Student') : 'Admin';
     app.innerHTML = `
-      <div class="mobilebar"><button data-act="nav" aria-label="Open menu">${icon('menu')}</button><a class="brand" href="#/home"><img src="/logo.svg" alt="">OrbitLearn</a><span></span></div>
+      <div class="mobilebar"><button data-act="nav" aria-label="Open menu">${icon('menu')}</button>${brand()}<span></span></div>
       <div class="shell">
         <aside class="side ${navOpen ? 'open' : ''}" aria-label="Main">
-          <a class="brand" href="#/home"><img src="/logo.svg" alt="">OrbitLearn</a>
+          ${brand()}
           <nav>${nav.map(([h, l, i]) => `<a href="#/${h}" class="${cur === h || (h !== 'home' && cur.startsWith(h + '/')) || (h === 'home' && key === 'home') ? 'on' : ''}">${icon(i)}${esc(l)}</a>`).join('')}</nav>
-          <div class="who"><b>${esc(S.me.name)}</b>${esc(S.me.role === 'parent' ? S.labels.guardian : S.me.role === 'teacher' ? S.labels.teacher : S.me.role[0].toUpperCase() + S.me.role.slice(1))} · ${esc(S.school.name)}</div>
+          <div class="who"><span class="avatar">${esc(initials(S.me.name))}</span><div><b>${esc(S.me.name)}</b>${esc(roleName)} · ${esc(S.school.name)}</div></div>
         </aside>
         <main id="main">
           <div class="top">
-            <span class="levelchip">${esc(levelName)} demo</span>
+            <span class="levelchip"><span class="pulse"></span>${esc(levelName)} · live demo</span>
             <div class="actions">
               <div class="bell"><button class="btn ghost sm" data-act="bell" aria-label="Notifications, ${unread} unread" aria-expanded="${panelOpen}">${icon('bell')}</button>${unread ? `<span class="count">${unread}</span>` : ''}
                 ${panelOpen ? `<div class="panel" role="dialog" aria-label="Notifications">${S.notifications.length ? S.notifications.map((n) => `<a class="n ${n.read ? '' : 'unread'}" href="${esc(n.link || '#/home')}"><b>${esc(n.title)}</b><div class="small muted">${esc(n.body)}</div><div class="tiny muted">${ago(n.createdAt)}</div></a>`).join('') : '<div class="empty" style="padding:12px">No notifications yet.</div>'}</div>` : ''}
@@ -89,16 +133,18 @@
               <button class="btn ghost sm" data-act="logout">${icon('out')}<span>Sign out</span></button>
             </div>
           </div>
-          ${body}
+          <div class="fadein">${body}</div>
         </main>
       </div>`;
+    typewriter();
   }
 
   function page(key, r) {
     const role = S.me.role;
     const P = {
-      home: () => (role === 'student' ? studentHome() : role === 'parent' ? parentHome() : role === 'teacher' ? teacherHome() : adminHome()),
+      home: () => (role === 'student' ? (S.labels.level === 'kinder' ? kinderHome() : studentHome()) : role === 'parent' ? parentHome() : role === 'teacher' ? teacherHome() : adminHome()),
       assignments: () => assignmentsPage(),
+      foundation: () => foundationPage(r.parts[1], r.q.from),
       vault: () => (r.parts[1] ? recapPage(r.parts[1]) : vaultPage(r.q)),
       exam: () => examPage(r.parts[1]),
       assistant: () => assistantPage(),
@@ -114,37 +160,45 @@
 
   // ---------- login ----------
   function renderLogin(err = '') {
+    const P = [
+      ['kinder', 'k', 'Mia, 5', 'Kindergarten · Little Orbit'],
+      ['student', '', 'Tyler, 15', 'Grade 10 · high school'],
+      ['uni', 'u', 'Jordan, 20', 'University · BIO 201'],
+      ['parent', '', 'Dana Brooks', 'Parent · Tyler’s mom'],
+      ['teacher', '', 'Ms. Rivera', 'Teacher · Biology & English'],
+      ['admin', '', 'Principal Grant', 'School admin'],
+    ];
     app.innerHTML = `
     <div class="login">
       <section class="pitch">
-        <a class="brand" href="#/"><img src="/logo.svg" alt="">OrbitLearn</a>
-        <h1>Keep every student in orbit.</h1>
-        <p style="max-width:520px">The classroom platform that doesn't wait for report cards. OrbitLearn spots students who are slipping, loops in parents and teachers right away, and turns every class into a study guide students keep.</p>
-        <div class="feat">
-          <div>${icon('alert')}<span><b>Proactive alerts.</b> Absences, low grades and missing work trigger a note to the family with a one-click meeting link.</span></div>
-          <div>${icon('spark')}<span><b>AI class recaps.</b> Teachers approve a recap after class; students get flashcards and quizzes.</span></div>
-          <div>${icon('book')}<span><b>Study Vault.</b> Every recap is saved, so exam prep is one click.</span></div>
-          <div>${icon('users')}<span><b>Community.</b> Shoutouts, announcements and a parent hub keep everyone connected.</span></div>
+        ${brand()}
+        <div>
+          <span class="ai-chip">${icon('spark')} AI classroom · K to university</span>
+          <h1>Every student, <span class="gtext">in orbit.</span></h1>
         </div>
-        <div class="orbit" aria-hidden="true"></div>
+        <p class="lede">One AI platform that grows with a learner from their first day of kindergarten to their last university lecture. It spots who’s slipping before report cards, turns every class into a study guide, and when a topic gets hard, it reaches back to the earlier lesson that makes it click.</p>
+        <div class="system" aria-hidden="true"><div class="core"></div><div class="ring"><span>AI recaps</span></div><div class="ring"><span>Foundations Bridge</span></div><div class="ring"><span>Early alerts</span></div></div>
+        <div class="feat">
+          <div><b>Foundations Bridge</b>Stuck on cellular respiration? Orbit pulls the Grade 3 and Grade 9 lessons that build up to it.</div>
+          <div><b>Grows with every age</b>Big, read-aloud lessons for 5-year-olds. Focused lecture digests for university.</div>
+          <div><b>Early alerts</b>Absences, low grades and missing work reach families with a plan and a meeting link.</div>
+          <div><b>A lifelong vault</b>Every recap, flashcard and quiz is saved, so exam prep is one click.</div>
+        </div>
       </section>
       <section class="pane">
-        <h2>Try the demo</h2>
-        <p class="muted">Pick a view. Each one is a real, working account at the demo school.</p>
+        <div><h2 style="font-size:24px">Step inside</h2><p class="muted">Pick a person. The whole interface changes with their age and role.</p></div>
         <div class="demos">
-          <button class="demo" data-act="demo" data-role="student"><b>Student</b><span>Tyler Brooks, Grade 10</span></button>
-          <button class="demo" data-act="demo" data-role="parent"><b>Parent</b><span>Dana Brooks, Tyler's mom</span></button>
-          <button class="demo" data-act="demo" data-role="teacher"><b>Teacher</b><span>Ms. Rivera, Biology & English</span></button>
-          <button class="demo" data-act="demo" data-role="admin"><b>School admin</b><span>Principal Grant</span></button>
+          ${P.map(([role, k, n, d]) => `<button class="demo" data-act="demo" data-role="${role}"><span class="avatar ${k}">${esc(initials(n))}</span><span><b>${esc(n)}</b><span>${esc(d)}</span></span></button>`).join('')}
         </div>
-        <form data-form="login" class="card" style="margin-top:8px">
-          <h3>Or sign in</h3>
-          <label for="em">Email</label><input id="em" name="email" type="email" autocomplete="username" required placeholder="student@orbitlearn.demo">
-          <label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="current-password" required placeholder="demo1234">
-          <p class="err" role="alert">${esc(err)}</p>
-          <button class="btn" type="submit">Sign in</button>
-          <p class="tiny muted" style="margin-top:10px">Demo password for every account: demo1234. Demo data refreshes every few days.</p>
-        </form>
+        <details class="signin card"${err ? ' open' : ''}><summary>Sign in with email</summary>
+          <form data-form="login" style="margin-top:6px">
+            <label for="em">Email</label><input id="em" name="email" type="email" autocomplete="username" required placeholder="student@orbitlearn.demo">
+            <label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="current-password" required placeholder="demo1234">
+            <p class="err" role="alert">${esc(err)}</p>
+            <button class="btn" type="submit">Sign in</button>
+            <p class="tiny muted" style="margin-top:10px">Every demo account uses the password demo1234. Demo data refreshes every few days.</p>
+          </form>
+        </details>
       </section>
     </div>`;
   }
@@ -188,11 +242,72 @@
     return `<div class="grid g3">${recaps.slice(0, max).map((r) => `<a class="recapcard" href="#/vault/${esc(r.id)}">${subj(cls(r.classId))}<div style="margin:6px 0 4px"><b>${esc(r.title)}</b></div><div class="small muted">${fmtDate(r.date)} · ${r.flashcards.length} flashcards · ${r.quiz.length} quiz Qs</div><div class="small" style="margin-top:6px">${esc(r.summary[0] || '')}</div></a>`).join('')}</div>`;
   }
 
+  // ---------- AI briefing ----------
+  function brief(text, href, label) {
+    return `<div class="brief"><div class="orb"></div><div><div class="who-ai">${isKid() ? 'Orbit says' : 'Orbit AI briefing'}</div><p>${text}</p></div>${href ? `<a class="btn ghost sm" href="${esc(href)}">${esc(label)}</a>` : ''}</div>`;
+  }
+  function studentBrief() {
+    const miss = S.assignments.filter((a) => a.state === 'missing');
+    const next = S.assignments.filter((a) => a.state === 'todo').sort((a, b) => a.due.localeCompare(b.due))[0];
+    const weak = (S.risk.perClass || []).filter((p) => p.average != null).sort((a, b) => a.average - b.average)[0];
+    const fr = S.recaps.find((r) => (r.foundations || []).length && (!weak || r.classId === weak.classId)) || S.recaps.find((r) => (r.foundations || []).length);
+    const parts = [];
+    if (miss.length) parts.push(`You have <b>${miss.length} missing</b> ${miss.length === 1 ? 'assignment' : 'assignments'}; start with “${esc(miss[0].title)}”.`);
+    else if (next) parts.push(`Next up: <b>${esc(next.title)}</b>, ${esc(dueText(next.due).toLowerCase())}.`);
+    if (weak && weak.average < 80) parts.push(`${esc(cls(weak.classId).subject)} is your lowest class at ${weak.average}%.`);
+    if (fr && S.labels.foundations) { const f = S.foundations[fr.foundations[0]]; if (f) parts.push(`A 4-minute refresher on <b>${esc(f.title)}</b> (${esc(f.gradeLabel)}) will make “${esc(fr.title)}” click.`); return brief(parts.join(' '), `#/foundation/${f ? f.id : ''}?from=${fr.id}`, 'Start refresher'); }
+    return brief(parts.join(' ') || 'You’re all caught up. Want a quick quiz to keep it fresh?', '#/assistant', 'Quiz me');
+  }
+  function foundationsPanel(ids, fromId, heading) {
+    if (!S.labels.foundations || !ids || !ids.length) return '';
+    const list = ids.map((id) => S.foundations && S.foundations[id]).filter(Boolean);
+    if (!list.length) return '';
+    return `<div class="card section"><h2><span>${icon('ladder')} ${esc(heading || 'Foundations Bridge')}</span><span class="ai-chip">AI matched</span></h2>
+      <p class="small muted">Lessons from earlier grades that this topic is built on. Review one if something doesn’t make sense yet.</p>
+      <div class="found">${list.map((f) => `<a class="fnd" href="#/foundation/${esc(f.id)}?from=${esc(fromId || '')}"><span class="rung">${esc(f.gradeLabel)}</span><span><b>${esc(f.title)}</b><div class="small muted">${esc(f.subject)} · ${esc((f.summary || [])[0] || '')}</div></span><span class="small" style="color:var(--teal)">Refresh →</span></a>`).join('')}</div></div>`;
+  }
+  function foundationPage(id, fromId) {
+    const f = S.foundations && S.foundations[id];
+    if (!f) return `<div class="card">That lesson isn't available. <a href="#/vault">Back to the vault</a></div>`;
+    const from = S.recaps.find((r) => r.id === fromId);
+    return `<a href="${from ? `#/vault/${esc(from.id)}` : '#/vault'}" class="small">← ${from ? esc(from.title) : 'Study Vault'}</a>
+      <div class="hero-greet" style="margin-top:10px"><div><span class="ai-chip">${icon('ladder')} Foundations Bridge</span><h1 style="margin-top:10px">${esc(f.title)}</h1>
+        <div class="ladder"><b>${esc(f.gradeLabel)} ${esc(f.subject)}</b> → ${from ? `<b>${esc(cls(from.classId).subject)}: ${esc(from.title)}</b>` : 'your class today'}</div></div>
+        <button class="btn ghost" data-act="listen" data-text="${esc(f.title + '. ' + f.summary.join(' '))}">${icon('ear')} Listen</button></div>
+      ${brief(`This is the ${esc(f.gradeLabel)} version of an idea you're using now. Read the four points, flip the cards, then try the check. It takes about 4 minutes.`)}
+      <div class="grid g2"><div class="card"><h2>The idea, simply</h2><ul>${f.summary.map((x) => `<li style="margin-bottom:6px">${esc(x)}</li>`).join('')}</ul></div>
+        <div class="card"><h2>Words to know</h2><dl class="terms">${f.keyTerms.map((k) => `<dt>${esc(k.term)}</dt><dd>${esc(k.definition)}</dd>`).join('')}</dl></div></div>
+      <div class="card section"><h2>Flashcards</h2>${flashGrid(f.flashcards)}</div>
+      <div class="card section"><h2>Quick check</h2>${quizBlock(f.quiz.slice(0, 3), `Foundation: ${f.title}`)}</div>
+      ${from ? `<div class="section"><a class="btn" href="#/vault/${esc(from.id)}">Back to ${esc(from.title)} →</a></div>` : ''}`;
+  }
+
+  // ---------- kindergarten ----------
+  function kinderHome() {
+    const colors = ['linear-gradient(140deg,#FF8A3D,#FF5FA2)', 'linear-gradient(140deg,#7C5CFF,#4F8BFF)', 'linear-gradient(140deg,#14B8A6,#5BD66B)', 'linear-gradient(140deg,#FFB020,#FF7A45)'];
+    const art = ['<circle cx="32" cy="20" r="12" fill="#FFE27A"/><path d="M32 34v24M32 46c-8 0-12-6-12-12 8 0 12 6 12 12zM32 42c8 0 12-6 12-12-8 0-12 6-12 12z" fill="#fff" stroke="#fff" stroke-width="3"/>',
+      '<circle cx="18" cy="22" r="12" fill="#fff"/><rect x="36" y="10" width="22" height="22" rx="3" fill="#FFE27A"/><path d="M32 56l14-22 14 22z" fill="#fff" opacity=".85"/>',
+      '<g fill="#fff" font-family="Baloo 2,sans-serif" font-weight="800" font-size="22"><text x="4" y="28">1</text><text x="24" y="44">2</text><text x="42" y="28">3</text></g><circle cx="52" cy="52" r="7" fill="#FFE27A"/>'];
+    const jobs = S.assignments.filter((a) => a.state === 'todo' || a.state === 'missing');
+    const stars = S.assignments.filter((a) => a.state === 'submitted' || a.state === 'graded').length + (S.badges || []).length;
+    return `<div class="k-hello"><svg class="k-sun" viewBox="0 0 84 84" aria-hidden="true"><g stroke="#FFB020" stroke-width="5" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map((d) => `<line x1="42" y1="6" x2="42" y2="14" transform="rotate(${d} 42 42)"/>`).join('')}</g><circle cx="42" cy="42" r="22" fill="#FFC93C"/><circle cx="35" cy="39" r="2.6" fill="#2A2350"/><circle cx="49" cy="39" r="2.6" fill="#2A2350"/><path d="M34 48c4 5 12 5 16 0" stroke="#2A2350" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+        <div><h1>Hi ${esc(first(S.me.name))}!</h1><p class="muted" style="font-size:19px;margin:0">You have <b>${stars} stars</b> this week. Let’s learn something new!</p></div></div>
+      ${brief(`Today we learned about <b>${esc((S.recaps[0] || {}).title || 'something fun')}</b>! Tap Listen and I’ll tell you all about it.`)}
+      <h2 style="font-size:26px;margin:22px 0 12px">My lessons</h2>
+      <div class="k-cards">${S.recaps.slice(0, 6).map((r, i) => `<a class="k-card" href="#/vault/${esc(r.id)}" style="background:${colors[i % colors.length]}"><svg class="art" viewBox="0 0 64 64" aria-hidden="true">${art[/plant|seed|grow/i.test(r.title) ? 0 : /shape/i.test(r.title) ? 1 : /count|number/i.test(r.title) ? 2 : i % art.length]}</svg><h3>${esc(r.title)}</h3><p>${esc(r.summary[0] || '')}</p>
+        <div class="go"><button type="button" data-act="listen" data-text="${esc(r.title + '. ' + r.summary.join(' '))}">${icon('ear')} Listen</button><span>${icon('play')} Play</span></div></a>`).join('')}</div>
+      <div class="grid g2 section">
+        <div class="card"><h2 style="font-size:24px">My jobs</h2>${jobs.length ? `<div class="list">${jobs.map((a) => `<div class="row"><b style="font-size:18px">${esc(a.title)}</b><button class="btn sm" data-act="submit" data-id="${esc(a.id)}">${icon('check')} I did it!</button></div>`).join('')}</div>` : '<div class="empty" style="font-size:18px">All done! Great job!</div>'}</div>
+        <div class="card"><h2 style="font-size:24px">My stickers</h2><div class="stars-row">${['#FFB020', '#FF5FA2', '#7C5CFF', '#14B8A6'].slice(0, Math.max(1, Math.min(4, stars))).map((c, i) => `<div class="sticker"><svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" fill="${c}" stroke="#fff" stroke-width="1.2"/></svg>${esc(['Super listener', 'Shape finder', 'Counting star', 'Kind friend'][i])}</div>`).join('')}</div></div>
+      </div>`;
+  }
+
   // ---------- student ----------
   function studentHome() {
     const upcoming = S.assignments.filter((a) => a.state === 'todo' || a.state === 'missing').slice(0, 5);
     return `${urgentStrip()}
-      <div class="hero-greet"><div><h1>Hi ${esc(first(S.me.name))} 👋</h1><p class="muted">Here's your week at ${esc(S.school.name)}.</p></div><a class="btn sun" href="#/assistant">${icon('spark')} Ask the AI assistant</a></div>
+      <div class="hero-greet"><div><h1>Hey ${esc(first(S.me.name))}, <span class="gtext">let’s go.</span></h1><p class="muted">${esc(S.me.gradeLabel || '')} · ${esc(S.school.name)}</p></div><a class="btn" href="#/assistant">${icon('spark')} Ask Orbit AI</a></div>
+      ${studentBrief()}
       ${riskBanner('student')}
       <div class="grid g2 section">
         <div class="card"><h2>Coming up <a class="small" href="#/assignments">All</a></h2>${assignmentRows(upcoming, true)}</div>
@@ -250,14 +365,15 @@
     const hw = (r.homework || []).map((h) => S.assignments.find((a) => a.id === h)).filter(Boolean);
     return `<a href="#/vault" class="small">← ${S.me.role === 'parent' ? 'Class recaps' : 'Study Vault'}</a>
       <div class="hero-greet" style="margin-top:8px"><div>${subj(c)}<h1 style="margin-top:6px">${esc(r.title)}</h1><p class="muted">${fmtDate(r.date)} · approved by your ${esc(S.labels.teacher.toLowerCase())}</p></div>
-      ${S.me.role === 'student' ? `<a class="btn ghost" href="#/exam/${esc(c.id)}">${icon('book')} ${esc(c.subject)} exam prep</a>` : ''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-act="listen" data-text="${esc(r.title + '. ' + r.summary.join(' '))}">${icon('ear')} Listen</button>${S.me.role === 'student' && !isKid() ? `<a class="btn ghost" href="#/exam/${esc(c.id)}">${icon('book')} ${esc(c.subject)} exam prep</a>` : ''}</div></div>
       <div class="grid g2">
         <div class="card"><h2>Recap</h2><ul>${r.summary.map((s) => `<li style="margin-bottom:6px">${esc(s)}</li>`).join('')}</ul>
           ${hw.length ? `<h3 style="margin-top:14px">Homework from this class</h3>${hw.map((a) => `<div class="small">${icon('clip')} <b>${esc(a.title)}</b>, ${esc(dueText(a.due))}</div>`).join('')}` : ''}</div>
         <div class="card"><h2>Key terms</h2><dl class="terms">${r.keyTerms.map((k) => `<dt>${esc(k.term)}</dt><dd>${esc(k.definition)}</dd>`).join('')}</dl></div>
       </div>
+      ${foundationsPanel(r.foundations, r.id, 'Built on these earlier lessons')}
       <div class="card section"><h2>Flashcards</h2>${flashGrid(r.flashcards)}</div>
-      <div class="card section"><h2>Practice quiz</h2>${quizBlock(r.quiz, `${c.subject}: ${r.title}`)}</div>`;
+      <div class="card section"><h2>${isKid() ? 'Let’s play!' : 'Practice quiz'}</h2>${quizBlock(r.quiz, `${c.subject}: ${r.title}`)}</div>`;
   }
 
   function examPage(classId) {
@@ -269,7 +385,8 @@
     return `<a href="#/vault" class="small noprint">← Study Vault</a>
       <div class="hero-greet" style="margin-top:8px"><div>${subj(c)}<h1 style="margin-top:6px">${esc(c.subject)} exam study guide</h1><p class="muted">Built from ${rs.length} class recaps · ${terms.length} key terms · ${qs.length} practice questions</p></div>
       <button class="btn ghost noprint" data-act="print">${icon('print')} Print / save as PDF</button></div>
-      <div class="card"><h2>What we covered</h2>${rs.map((r) => `<h3 style="margin-top:12px">${esc(r.title)} <span class="tiny muted">${fmtDate(r.date)}</span></h3><ul class="small">${r.summary.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`).join('') || '<div class="empty">No recaps yet.</div>'}</div>
+      ${(() => { const ids = [...new Set(rs.flatMap((r) => r.foundations || []))].slice(0, 4); const anchor = rs.find((r) => (r.foundations || []).length); return ids.length ? `${brief(`Before the test, Orbit found <b>${ids.length} earlier-grade lessons</b> these topics are built on. If a recap feels confusing, the gap is usually in one of these.`)}${foundationsPanel(ids, anchor && anchor.id, 'Before the test: refresh the foundations')}` : ''; })()}
+      <div class="card section"><h2>What we covered</h2>${rs.map((r) => `<h3 style="margin-top:12px">${esc(r.title)} <span class="tiny muted">${fmtDate(r.date)}</span></h3><ul class="small">${r.summary.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`).join('') || '<div class="empty">No recaps yet.</div>'}</div>
       <div class="card section"><h2>All key terms</h2><dl class="terms">${terms.map((k) => `<dt>${esc(k.term)}</dt><dd>${esc(k.definition)}</dd>`).join('')}</dl></div>
       <div class="card section noprint"><h2>Flashcard review</h2>${flashGrid(rs.flatMap((r) => r.flashcards))}</div>
       <div class="card section"><h2>Practice test</h2>${quizBlock(qs, `${c.subject} exam prep`)}</div>`;
@@ -277,20 +394,36 @@
   function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
   function assistantPage() {
-    const ideas = ['What is mitochondria?', 'Make flashcards for Biology', 'Quiz me on Math', 'Recap English', 'What is a thesis?'];
-    if (!chat.length) chat.push({ who: 'bot', text: `Hi ${first(S.me.name)}! I'm your AI teaching assistant. I know everything from your class recaps. Ask me a question, or ask for flashcards or a quiz.` });
-    return `<h1>AI Teaching Assistant</h1><p class="muted">I help you study from your own class recaps. I won't do your homework for you, but I'll help you get ready for it.</p>
+    const lv = S.labels.level;
+    const subjects = [...new Set(S.classes.map((c) => c.subject))];
+    const t0 = (S.recaps[0] && S.recaps[0].title) || subjects[0];
+    const ideas = lv === 'kinder' ? ['What is a seed?', 'Quiz me on shapes', 'Tell me about counting']
+      : [`Explain ${t0} simply`, `What is ${((S.recaps[0] || {}).keyTerms || [{ term: 'a key term' }])[0].term.toLowerCase()}?`, `Make flashcards for ${subjects[0]}`, `Quiz me on ${subjects[1] || subjects[0]}`, `I don't get ${t0}`];
+    if (!chat.length) chat.push({ who: 'bot', text: lv === 'kinder' ? `Hi ${first(S.me.name)}! I'm Orbit. Ask me anything about what we learned today!` : `Hi ${first(S.me.name)}. I'm Orbit, your AI study partner. I know everything from your class recaps. Ask a question, ask for flashcards or a quiz, or tell me what you don't get and I'll take you back to the lesson it's built on.` });
+    return `<div class="chathead"><div class="orb lg"></div><div><h1 style="margin:0">${lv === 'kinder' ? 'Ask Orbit' : 'Orbit AI'}</h1><p class="muted" style="margin:0">${lv === 'kinder' ? 'Your friendly learning buddy.' : 'Studies from your own class recaps. It won’t do your homework, but it’ll get you ready for it.'}</p></div></div>
       <div class="card"><div class="chat" id="chat">${chat.map(chatMsg).join('')}</div>
         <div class="chips" style="margin-top:12px">${ideas.map((t) => `<button class="chip" data-act="ask" data-q="${esc(t)}">${esc(t)}</button>`).join('')}</div>
-        <form class="chatform" data-form="chat"><label class="sr" for="cq">Your question</label><input id="cq" name="q" type="text" placeholder="Ask about anything from class…" autocomplete="off" required><button class="btn" type="submit">Send</button></form>
+        <form class="chatform" data-form="chat"><label class="sr" for="cq">Your question</label><input id="cq" name="q" type="text" placeholder="${lv === 'kinder' ? 'Type or tap a bubble…' : 'Ask anything from class…'}" autocomplete="off" required><button class="btn" type="submit">${icon('spark')} Send</button></form>
       </div>`;
   }
-  function chatMsg(m) {
+  function chatMsg(m, i) {
     if (m.who === 'me') return `<div class="msg me">${esc(m.text)}</div>`;
     let extra = '';
     if (m.flashcards) extra = `<div style="margin-top:10px">${flashGrid(m.flashcards.slice(0, 6))}</div>`;
     if (m.quiz) extra = `<div style="margin-top:10px">${quizBlock(m.quiz, 'Assistant quiz')}</div>`;
-    return `<div class="msg bot">${esc(m.text)}${m.source ? `<div class="tiny muted" style="margin-top:6px">From your ${esc(m.source)}${m.recapId ? ` · <a href="#/vault/${esc(m.recapId)}">open recap</a>` : ''}</div>` : ''}${extra}</div>`;
+    if (m.foundation) extra += `<a class="fnd" style="margin-top:10px" href="#/foundation/${esc(m.foundation.id)}${m.recapId ? `?from=${esc(m.recapId)}` : ''}"><span class="rung">${esc(m.foundation.gradeLabel)}</span><span><b>${esc(m.foundation.title)}</b><div class="small muted">${esc(m.foundation.subject)} · Foundations Bridge</div></span><span class="small" style="color:var(--teal)">Open →</span></a>`;
+    const meta = m.source ? `<div class="tiny muted" style="margin-top:6px">From your ${esc(m.source)}${m.recapId ? ` · <a href="#/vault/${esc(m.recapId)}">open recap</a>` : ''}</div>` : '';
+    if (m.fresh) return `<div class="msg bot typing" data-tw="${i}"><span class="tw"></span><div class="tw-rest" hidden>${meta}${extra}</div></div>`;
+    return `<div class="msg bot">${esc(m.text)}${meta}${extra}</div>`;
+  }
+  function typewriter() {
+    const el = document.querySelector('.msg.bot.typing'); if (!el) return;
+    const m = chat[Number(el.dataset.tw)]; m.fresh = false;
+    const span = el.querySelector('.tw'); const rest = el.querySelector('.tw-rest'); const box = document.getElementById('chat');
+    const full = m.text; let n = 0; const step = Math.max(1, Math.round(full.length / 90));
+    const done = () => { span.textContent = full; el.classList.remove('typing'); rest.hidden = false; if (box) box.scrollTop = box.scrollHeight; };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+    (function tick() { if (!el.isConnected) return; n += step; span.textContent = full.slice(0, n); if (box) box.scrollTop = box.scrollHeight; if (n < full.length) setTimeout(tick, 14); else done(); })();
   }
 
   // ---------- parent ----------
@@ -302,6 +435,7 @@
     const missing = S.assignments.filter((a) => a.state === 'missing').length;
     return `${urgentStrip()}
       <div class="hero-greet"><div><h1>${esc(first(s.name))}'s week</h1><p class="muted">Grade ${esc(s.grade)} · ${esc(S.school.name)}</p></div>${S.risk.level === 'ok' ? `<a class="btn" href="#/meetings">${icon('cal')} Book a ${esc(S.labels.teacher.toLowerCase())} meeting</a>` : ''}</div>
+      ${brief(parentBriefText(), '#/vault', 'See what they learned')}
       ${riskBanner('parent')}
       <div class="grid g3 section">
         <div class="card stat"><div class="l">Overall average</div><div class="v">${avg == null ? '–' : avg + '%'}</div></div>
@@ -319,6 +453,14 @@
       </div>`;
   }
 
+  function parentBriefText() {
+    const n = esc(first(S.student.name)); const miss = S.assignments.filter((a) => a.state === 'missing');
+    const r = S.recaps[0]; const ask = r && r.keyTerms[0];
+    const p = [S.risk.level === 'ok' ? `${n} is on track this week.` : `${n} could use some support this week: ${esc(S.risk.reasons[0] || '')}.`];
+    if (miss.length) p.push(`${miss.length} ${miss.length === 1 ? 'assignment is' : 'assignments are'} missing.`);
+    if (ask) p.push(`At dinner, try asking: <b>“What’s ${esc(ask.term.toLowerCase())}?”</b> They covered it in ${esc(cls(r.classId).subject)}.`);
+    return p.join(' ');
+  }
   function communityPage() {
     const posts = S.community || [];
     return `<h1>${esc(S.labels.community)}</h1><p class="muted">Connect with other families in ${esc(first(S.student.name))}'s classes. Be kind, and keep it about the class.</p>
@@ -375,6 +517,7 @@
     const reqs = S.meetings.filter((m) => m.status === 'requested');
     const drafts = S.recaps.filter((r) => r.status === 'draft');
     return `<div class="hero-greet"><div><h1>Good day, ${esc(S.me.name)}</h1><p class="muted">${S.classes.map((c) => esc(c.name)).join(' · ')}</p></div><button class="btn sun" data-act="runrisk">${icon('alert')} Run at-risk check</button></div>
+      ${brief(`${atRisk.filter((s) => s.risk === 'high').length} ${atRisk.filter((s) => s.risk === 'high').length === 1 ? 'student needs' : 'students need'} you today${atRisk[0] ? `, starting with <b>${esc(atRisk[0].name)}</b> (${esc(atRisk[0].reasons[0] || '')})` : ''}. ${drafts.length ? `${drafts.length} AI recap ${drafts.length === 1 ? 'draft is' : 'drafts are'} waiting for your approval. ` : ''}${reqs.length ? `${reqs.length} meeting ${reqs.length === 1 ? 'request' : 'requests'} to answer.` : ''}`, atRisk[0] ? '#/class/' + S.classes[0].id : '', 'Open roster')}
       <div class="grid g4">
         <div class="card stat"><div class="l">Students</div><div class="v">${all.length}</div></div>
         <div class="card stat"><div class="l">At risk</div><div class="v" style="color:var(--high)">${all.filter((s) => s.risk === 'high').length}</div></div>
@@ -433,7 +576,7 @@
     const drafts = S.recaps.filter((r) => r.classId === c.id && r.status === 'draft');
     const pubd = S.recaps.filter((r) => r.classId === c.id && r.status === 'published');
     const upcoming = S.assignments.filter((a) => a.classId === c.id && a.due >= today());
-    return `${drafts.map((r) => `<form class="card" data-form="publish" data-id="${esc(r.id)}" style="margin-bottom:16px;border-color:#f3dca8"><h2>${esc(r.title)} ${pill('draft', 'Draft: review before students see it')}</h2>
+    return `${drafts.map((r) => `<form class="card" data-form="publish" data-id="${esc(r.id)}" style="margin-bottom:16px;border-color:var(--watch)"><h2>${esc(r.title)} ${pill('draft', 'Draft: review before students see it')}</h2>
         <label for="sum${esc(r.id)}">Recap (one point per line, edit anything)</label><textarea id="sum${esc(r.id)}" name="summary" style="min-height:140px">${esc(r.summary.join('\n'))}</textarea>
         <div class="grid g2" style="margin-top:12px"><div><h3>Key terms</h3><dl class="terms small">${r.keyTerms.map((k) => `<dt>${esc(k.term)}</dt><dd>${esc(k.definition)}</dd>`).join('')}</dl></div>
         <div><h3>Also generated</h3><p class="small">${r.flashcards.length} flashcards and ${r.quiz.length} quiz questions for students.</p>
@@ -478,10 +621,12 @@
     const X = (i) => pad + (i * (W - pad * 2)) / (t.length - 1); const Y = (v) => H - pad - ((v - lo) / (hi - lo)) * (H - pad * 2);
     const pts = t.map((x, i) => `${X(i)},${Y(x.avg)}`).join(' ');
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="School average by month: ${t.map((x) => `${x.month} ${x.avg}%`).join(', ')}">
-      ${[lo, (lo + hi) / 2, hi].map((v) => `<line x1="${pad}" x2="${W - pad}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ECEBF5"/><text x="4" y="${Y(v) + 4}" font-size="11" fill="#6B6987">${Math.round(v)}%</text>`).join('')}
-      <polyline points="${pts}" fill="none" stroke="#5B5BF7" stroke-width="3" stroke-linejoin="round"/>
-      ${t.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x.avg)}" r="4" fill="#fff" stroke="#5B5BF7" stroke-width="2"/><text x="${X(i)}" y="${H - 8}" font-size="11" text-anchor="middle" fill="#6B6987">${esc(x.month)}</text>`).join('')}
-      <text x="${X(t.length - 1)}" y="${Y(t[t.length - 1].avg) - 10}" font-size="12" font-weight="700" text-anchor="end" fill="#14123A">${t[t.length - 1].avg}%</text></svg>`;
+      <defs><linearGradient id="tg" x1="0" x2="1"><stop offset="0" stop-color="#2EE6D6"/><stop offset=".5" stop-color="#7C6CFF"/><stop offset="1" stop-color="#FF6FB5"/></linearGradient><linearGradient id="tf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7C6CFF" stop-opacity=".28"/><stop offset="1" stop-color="#7C6CFF" stop-opacity="0"/></linearGradient></defs>
+      ${[lo, (lo + hi) / 2, hi].map((v) => `<line x1="${pad}" x2="${W - pad}" y1="${Y(v)}" y2="${Y(v)}" stroke="currentColor" stroke-opacity=".1"/><text x="4" y="${Y(v) + 4}" font-size="11" fill="currentColor" fill-opacity=".55">${Math.round(v)}%</text>`).join('')}
+      <polygon points="${X(0)},${H - pad} ${pts} ${X(t.length - 1)},${H - pad}" fill="url(#tf)"/>
+      <polyline points="${pts}" fill="none" stroke="url(#tg)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+      ${t.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x.avg)}" r="4" fill="#06071A" stroke="#A99FFF" stroke-width="2"/><text x="${X(i)}" y="${H - 8}" font-size="11" text-anchor="middle" fill="currentColor" fill-opacity=".55">${esc(x.month)}</text>`).join('')}
+      <text x="${X(t.length - 1)}" y="${Y(t[t.length - 1].avg) - 12}" font-size="13" font-weight="700" text-anchor="end" fill="currentColor">${t[t.length - 1].avg}%</text></svg>`;
   }
   function emailPage() {
     return `<h1>Email log</h1><p class="muted">Every email OrbitLearn sent: at-risk alerts, meeting confirmations and urgent alerts. In this demo, emails are logged here instead of being delivered.</p>
@@ -489,9 +634,9 @@
   }
   function settingsPage() {
     const lv = S.school.level;
-    const opts = [['elementary', 'Elementary', 'Parent-first dashboards, simple recaps, badges and streaks.'], ['middle', 'Middle school', 'Recaps and study tools, badges for engagement.'], ['high', 'High school', 'Detailed recaps, Study Vault, parent alerts for grades and absences.'], ['university', 'College & university', 'Full lecture digests; advisors replace parents; study groups.']];
+    const opts = [['kinder', 'Kindergarten', 'Little Orbit: big read-aloud lesson cards, stickers, one-tap answers.'], ['elementary', 'Elementary', 'Parent-first dashboards, simple recaps, badges and streaks.'], ['middle', 'Middle school', 'Recaps and study tools, badges for engagement.'], ['high', 'High school', 'Detailed recaps, Study Vault, parent alerts for grades and absences.'], ['university', 'College & university', 'Full lecture digests; advisors replace parents; study groups.']];
     return `<h1>Settings</h1>
-      <form class="card" data-form="level"><h2>School level</h2><p class="small muted">OrbitLearn adapts to every stage. Switch to see the labels and features change across every dashboard.</p>
+      <form class="card" data-form="level"><h2>School level</h2><p class="small muted">Sets the default for school-wide screens. Each student’s own view already adapts to their grade: Kindergarten gets Little Orbit, university gets a focused professional layout.</p>
         ${opts.map(([v, l, d]) => `<label class="check" style="align-items:flex-start"><input type="radio" name="level" value="${v}" ${lv === v ? 'checked' : ''}> <span><b>${l}</b><br><span class="small muted">${d}</span></span></label>`).join('')}
         <button class="btn" style="margin-top:12px">Save</button></form>
       <div class="card section"><h2>Demo data</h2><p class="small muted">Reset the school back to the original sample data. Everyone will be signed out.</p><button class="btn danger" data-act="reset">Reset demo</button></div>`;
@@ -519,6 +664,7 @@
       else if (act === 'logout') { await api('/api/logout', {}); S = null; chat = []; location.hash = ''; render(); }
       else if (act === 'nav') { navOpen = !navOpen; render(); }
       else if (act === 'bell') { panelOpen = !panelOpen; render(); if (panelOpen && S.notifications.some((n) => !n.read)) { await api('/api/notifications/read', {}); S.notifications.forEach((n) => (n.read = true)); } }
+      else if (act === 'listen') { e.preventDefault(); e.stopPropagation(); speak(t.dataset.text); }
       else if (act === 'flip') t.classList.toggle('flip');
       else if (act === 'print') window.print();
       else if (act === 'answer') answer(t);
@@ -603,7 +749,7 @@
     chat.push({ who: 'me', text: q });
     render();
     const r = await api('/api/assistant', { message: q });
-    chat.push({ who: 'bot', ...r });
+    chat.push({ who: 'bot', ...r, fresh: true });
     render();
     const c = document.getElementById('chat');
     if (c) c.scrollTop = c.scrollHeight;

@@ -26,7 +26,17 @@ server.listen(0, async () => {
     const lv = t.classes[0].roster.map((r) => r.risk);
     ok(lv.includes('high') && lv.includes('ok'), 'roster mixed risk ' + lv);
     const a = await call('admin', 'GET', '/api/bootstrap');
-    ok(a.body.counts.high >= 2 && a.body.counts.students === 10, 'admin counts ' + JSON.stringify(a.body.counts));
+    ok(a.body.counts.high >= 2 && a.body.counts.students === 18, 'admin counts ' + JSON.stringify(a.body.counts));
+    // levels + foundations
+    ok(s.labels.theme === 'orbit' && s.recaps.some((r) => r.foundations.length) && Object.keys(s.foundations).length > 3, 'foundations for grade 10');
+    ok((await call('kid', 'POST', '/api/login', { email: 'kinder@orbitlearn.demo', password: 'demo1234' })).status === 200, 'kinder login');
+    const k = (await call('kid', 'GET', '/api/bootstrap')).body;
+    ok(k.labels.theme === 'kinder' && k.labels.band === 'kinder' && k.recaps.length === 3, 'kinder view');
+    ok((await call('uni', 'POST', '/api/login', { email: 'uni@orbitlearn.demo', password: 'demo1234' })).status === 200, 'uni login');
+    const un = (await call('uni', 'GET', '/api/bootstrap')).body;
+    ok(un.labels.theme === 'pro' && un.labels.guardian === 'Advisor' && Object.values(un.foundations).some((f) => f.gradeLabel === 'Grade 10'), 'uni bridges to grade 10');
+    let sr = await call('uni', 'POST', '/api/assistant', { message: "I don't understand DNA replication, explain it simpler" });
+    ok(sr.body.foundation && /Grade/.test(sr.body.foundation.gradeLabel), 'simpler -> foundation ' + JSON.stringify(sr.body.foundation));
     // assistant
     let r = await call('student', 'POST', '/api/assistant', { message: 'what is mitochondria' });
     ok(/powerhouse/i.test(r.body.text), 'assistant answers: ' + r.body.text);
